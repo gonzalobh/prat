@@ -208,7 +208,8 @@
       aspect-ratio: 3 / 4;
     }
 
-    .hero-panel-portrait img {
+    .hero-panel-portrait img,
+    .hero-panel-portrait video {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -582,7 +583,8 @@
       z-index: 0;
     }
 
-    .header-portrait img {
+    .header-portrait img,
+    .header-portrait video {
       width: 100%;
       height: 100%;
       border-radius: inherit;
@@ -1314,7 +1316,14 @@ body[data-theme="light"] .message-input::placeholder {
         </p>
       </div>
       <div class="hero-panel-portrait">
-        <img src="prat.png" alt="Retrato de Arturo Prat">
+        <video
+          src="prat.webm"
+          autoplay
+          loop
+          muted
+          playsinline
+          aria-label="Retrato animado de Arturo Prat"
+        ></video>
       </div>
       <p class="hero-panel-caption">
         “Al abordaje, muchachos.” — La decisión que definió una era de servicio y valentía.
@@ -1325,7 +1334,14 @@ body[data-theme="light"] .message-input::placeholder {
 <header class="header hero-card">
   <div class="header-content">
     <span class="header-portrait" id="headerIcon">
-      <img src="prat.png" alt="Avatar de Arturo Prat">
+      <video
+        src="prat.webm"
+        autoplay
+        loop
+        muted
+        playsinline
+        aria-label="Avatar animado de Arturo Prat"
+      ></video>
     </span>
 
     <div class="header-titles">
