@@ -1858,7 +1858,9 @@ function showWelcome() {
       return messageDiv;
     }
 
-    function showFollowUpOptions(messageElement, questions) {
+function showFollowUpOptions(messageElement, questions) {
+  if (!questions || questions.length === 0) return;
+
   const container = document.createElement("div");
   container.className = "options-container follow-up-options";
 
@@ -1876,10 +1878,9 @@ function showWelcome() {
   });
 
   messageElement.appendChild(container);
-
-  const bubble = messageElement.querySelector(".message-bubble");
-  revealOptionsAfterTyping(bubble, container);
+  scrollMessagesToBottom();
 }
+
 
 
     function showTypingIndicator() {
@@ -1903,61 +1904,67 @@ function showWelcome() {
       return typingDiv;
     }
 
-    async function sendMessage(text) {
-      if (isTyping) return;
+ async function sendMessage(text) {
+  if (isTyping) return;
 
-      const sanitizedText = text.trim();
-      if (!sanitizedText) return;
+  // 👇 NUEVO: elimina botones anteriores
+  document
+    .querySelectorAll(".follow-up-options")
+    .forEach(el => el.remove());
 
-      isTyping = true;
-      messages.push({ role: "user", content: sanitizedText });
-      addMessage("user", sanitizedText);
+  const sanitizedText = text.trim();
+  if (!sanitizedText) return;
 
-      const typingIndicator = showTypingIndicator();
-      if (sendButton) {
-        sendButton.disabled = true;
-      }
+  isTyping = true;
+  messages.push({ role: "user", content: sanitizedText });
+  addMessage("user", sanitizedText);
 
-      try {
-        const response = await fetch(API_URL, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages,
-            lang: "es",
-          }),
-        });
+  const typingIndicator = showTypingIndicator();
+  if (sendButton) {
+    sendButton.disabled = true;
+  }
 
-        if (!response.ok) {
-          throw new Error("Network response was not ok");
-        }
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages,
+        lang: "es",
+      }),
+    });
 
-const data = await response.json();
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
 
-const reply = data?.answer || TEXT.errorMessages.fetch;
-const suggestedQuestions = data?.suggested_questions || [];
+    const data = await response.json();
 
-messages.push({ role: "assistant", content: reply });
-typingIndicator?.remove();
+    const reply = data?.answer || TEXT.errorMessages.fetch;
+    const suggestedQuestions = data?.suggested_questions || [];
 
-const messageElement = addMessage("assistant", reply);
+    messages.push({ role: "assistant", content: reply });
+    typingIndicator?.remove();
 
-// 👇 NUEVO: mostrar botones de preguntas sugeridas
-if (suggestedQuestions.length && messageElement) {
-  showFollowUpOptions(messageElement, suggestedQuestions);
+    const messageElement = addMessage("assistant", reply);
+
+    // 👇 esto YA está bien, no lo cambies
+    if (suggestedQuestions.length && messageElement) {
+      showFollowUpOptions(messageElement, suggestedQuestions);
+    }
+
+  } catch (error) {
+    typingIndicator?.remove();
+    addMessage("assistant", TEXT.errorMessages.network);
+  } finally {
+    isTyping = false;
+    if (sendButton) {
+      sendButton.disabled = false;
+    }
+    input?.focus();
+  }
 }
 
-      } catch (error) {
-        typingIndicator?.remove();
-        addMessage("assistant", TEXT.errorMessages.network);
-      } finally {
-        isTyping = false;
-        if (sendButton) {
-          sendButton.disabled = false;
-        }
-        input?.focus();
-      }
-    }
   </script>
 </body>
 </html>
