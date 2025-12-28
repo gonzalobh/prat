@@ -1696,21 +1696,23 @@ function showWelcome() {
 }
 
 
-    function revealOptionsAfterTyping(bubble, element) {
-      if (!element) return;
-      if (!bubble || !bubble.classList.contains("is-typing")) {
-        element.classList.remove("pending-display");
-        return;
-      }
+function revealOptionsAfterTyping(bubble, element) {
+  if (!element) return;
 
-      element.classList.add("pending-display");
-      const showOptions = () => {
-        element.classList.remove("pending-display");
-        bubble.removeEventListener("typingcomplete", showOptions);
-      };
+  element.classList.add("pending-display");
 
-      bubble.addEventListener("typingcomplete", showOptions);
-    }
+  const showOptions = () => {
+    element.classList.remove("pending-display");
+    bubble?.removeEventListener("typingcomplete", showOptions);
+  };
+
+  // 👇 SIEMPRE escuchamos el evento
+  bubble?.addEventListener("typingcomplete", showOptions);
+
+  // 👇 fallback de seguridad (por si algo falla)
+  setTimeout(showOptions, 3000);
+}
+
 
     function showInitialOptions() {
       const message = addMessage("assistant", TEXT.initialQuestion);
