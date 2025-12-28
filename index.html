@@ -1862,7 +1862,7 @@ function showFollowUpOptions(messageElement, questions) {
   if (!questions || questions.length === 0) return;
 
   const container = document.createElement("div");
-  container.className = "options-container follow-up-options";
+  container.className = "options-container follow-up-options pending-display";
 
   questions.forEach((q) => {
     const button = document.createElement("button");
@@ -1878,8 +1878,11 @@ function showFollowUpOptions(messageElement, questions) {
   });
 
   messageElement.appendChild(container);
-  scrollMessagesToBottom();
+
+  const bubble = messageElement.querySelector(".message-bubble");
+  revealOptionsAfterTyping(bubble, container);
 }
+
 
 
 
