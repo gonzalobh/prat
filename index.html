@@ -1701,17 +1701,24 @@ function revealOptionsAfterTyping(bubble, element) {
 
   element.classList.add("pending-display");
 
-  const showOptions = () => {
+  const show = () => {
+    if (!element.isConnected) return;
     element.classList.remove("pending-display");
-    bubble?.removeEventListener("typingcomplete", showOptions);
   };
 
-  // 👇 SIEMPRE escuchamos el evento
-  bubble?.addEventListener("typingcomplete", showOptions);
+  // Si el texto ya terminó, mostrar inmediatamente
+  if (!bubble || !bubble.classList.contains("is-typing")) {
+    show();
+    return;
+  }
 
-  // 👇 fallback de seguridad (por si algo falla)
-  setTimeout(showOptions, 3000);
+  // Esperar correctamente a que termine el typing
+  bubble.addEventListener("typingcomplete", show, { once: true });
+
+  // Fallback de seguridad
+  setTimeout(show, 2500);
 }
+
 
 
     function showInitialOptions() {
@@ -1912,10 +1919,7 @@ function showFollowUpOptions(messageElement, questions) {
  async function sendMessage(text) {
   if (isTyping) return;
 
-  // 👇 NUEVO: elimina botones anteriores
-  document
-    .querySelectorAll(".follow-up-options")
-    .forEach(el => el.remove());
+
 
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
@@ -1952,6 +1956,12 @@ function showFollowUpOptions(messageElement, questions) {
     typingIndicator?.remove();
 
     const messageElement = addMessage("assistant", reply);
+
+    // 👇 borrar opciones anteriores AQUÍ (no antes)
+document
+  .querySelectorAll(".follow-up-options")
+  .forEach(el => el.remove());
+
 
     // 👇 esto YA está bien, no lo cambies
     if (suggestedQuestions.length && messageElement) {
