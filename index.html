@@ -1695,7 +1695,12 @@ function showWelcome() {
 }
 
 
-function revealOptionsAfterTyping(bubble, element, hiddenClass = "pending-display") {
+function revealOptionsAfterTyping(
+  bubble,
+  element,
+  hiddenClass = "pending-display",
+  delayMs = 0
+) {
   if (!element) return;
 
   element.classList.add(hiddenClass);
@@ -1705,6 +1710,14 @@ function revealOptionsAfterTyping(bubble, element, hiddenClass = "pending-displa
     if (revealed) return;
     revealed = true;
     if (!element.isConnected) return;
+    if (delayMs > 0) {
+      setTimeout(() => {
+        if (element.isConnected) {
+          element.classList.remove(hiddenClass);
+        }
+      }, delayMs);
+      return;
+    }
     element.classList.remove(hiddenClass);
   };
 
@@ -1716,7 +1729,7 @@ function revealOptionsAfterTyping(bubble, element, hiddenClass = "pending-displa
   bubble.addEventListener("typingcomplete", show, { once: true });
 
   // Fallback de seguridad
-  setTimeout(show, 3500);
+  setTimeout(show, 3500 + delayMs);
 
   if (bubble.dataset.typingComplete === "true") {
     show();
@@ -1895,7 +1908,7 @@ function showFollowUpOptions(messageElement, questions) {
   messageElement.appendChild(container);
 
   const bubble = messageElement.querySelector(".message-bubble");
-  revealOptionsAfterTyping(bubble, container, "is-hidden");
+  revealOptionsAfterTyping(bubble, container, "is-hidden", 2000);
 }
 
 
