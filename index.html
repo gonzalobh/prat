@@ -1701,22 +1701,27 @@ function revealOptionsAfterTyping(bubble, element) {
 
   element.classList.add("pending-display");
 
+  let revealed = false;
   const show = () => {
+    if (revealed) return;
+    revealed = true;
     if (!element.isConnected) return;
     element.classList.remove("pending-display");
   };
 
-  // Si el texto ya terminó, mostrar inmediatamente
-  if (!bubble || !bubble.classList.contains("is-typing")) {
+  if (!bubble) {
     show();
     return;
   }
 
-  // Esperar correctamente a que termine el typing
   bubble.addEventListener("typingcomplete", show, { once: true });
 
   // Fallback de seguridad
-  setTimeout(show, 2500);
+  setTimeout(show, 3500);
+
+  if (bubble.dataset.typingComplete === "true") {
+    show();
+  }
 }
 
 
@@ -1763,9 +1768,11 @@ function revealOptionsAfterTyping(bubble, element) {
       const nodesQueue = Array.from(wrapper.childNodes);
       bubble.innerHTML = "";
       bubble.classList.add("is-typing");
+      bubble.dataset.typingComplete = "false";
 
       const finishTyping = () => {
         bubble.classList.remove("is-typing");
+        bubble.dataset.typingComplete = "true";
         scrollMessagesToBottom();
         bubble.dispatchEvent(
           new CustomEvent("typingcomplete", { bubbles: true })
@@ -1919,10 +1926,12 @@ function showFollowUpOptions(messageElement, questions) {
  async function sendMessage(text) {
   if (isTyping) return;
 
-
-
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
+
+  document
+    .querySelectorAll(".follow-up-options")
+    .forEach((element) => element.remove());
 
   isTyping = true;
   messages.push({ role: "user", content: sanitizedText });
@@ -1956,12 +1965,6 @@ function showFollowUpOptions(messageElement, questions) {
     typingIndicator?.remove();
 
     const messageElement = addMessage("assistant", reply);
-
-    // 👇 borrar opciones anteriores AQUÍ (no antes)
-document
-  .querySelectorAll(".follow-up-options")
-  .forEach(el => el.remove());
-
 
     // 👇 esto YA está bien, no lo cambies
     if (suggestedQuestions.length && messageElement) {
