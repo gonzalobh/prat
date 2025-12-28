@@ -882,10 +882,17 @@
       width: 100%;
       margin-left: 0;
       margin-right: 0;
+      transform: none;
+      transition: opacity 0.25s ease-out;
     }
 
     .message.assistant .options-container.follow-up-options {
       margin-top: 18px;
+    }
+
+    .options-container.follow-up-options.is-hidden {
+      opacity: 0;
+      pointer-events: none;
     }
 
     .option-button {
@@ -1688,17 +1695,17 @@ function showWelcome() {
 }
 
 
-function revealOptionsAfterTyping(bubble, element) {
+function revealOptionsAfterTyping(bubble, element, hiddenClass = "pending-display") {
   if (!element) return;
 
-  element.classList.add("pending-display");
+  element.classList.add(hiddenClass);
 
   let revealed = false;
   const show = () => {
     if (revealed) return;
     revealed = true;
     if (!element.isConnected) return;
-    element.classList.remove("pending-display");
+    element.classList.remove(hiddenClass);
   };
 
   if (!bubble) {
@@ -1870,7 +1877,7 @@ function showFollowUpOptions(messageElement, questions) {
   if (!questions || questions.length === 0) return;
 
   const container = document.createElement("div");
-  container.className = "options-container follow-up-options pending-display";
+  container.className = "options-container follow-up-options is-hidden";
 
   questions.forEach((q) => {
     const button = document.createElement("button");
@@ -1888,7 +1895,7 @@ function showFollowUpOptions(messageElement, questions) {
   messageElement.appendChild(container);
 
   const bubble = messageElement.querySelector(".message-bubble");
-  revealOptionsAfterTyping(bubble, container);
+  revealOptionsAfterTyping(bubble, container, "is-hidden");
 }
 
 
