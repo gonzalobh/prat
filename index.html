@@ -1559,8 +1559,7 @@ body[data-theme="light"] .message-input::placeholder {
           return;
         }
       } catch (error) {}
-      const prefersDark = window.matchMedia?.("(prefers-color-scheme: dark)")?.matches;
-      applyTheme(prefersDark === false ? "light" : "dark", { persist: false });
+      applyTheme("dark", { persist: false });
     }
 
     function setupThemeToggle() {
