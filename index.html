@@ -1453,6 +1453,7 @@ body[data-theme="light"] .message-input::placeholder {
     const THEME_STORAGE_KEY = "theme-preference";
     const API_URL = "https://hotel-chat-proxy.vercel.app/api/prat";
 
+    let initialOptionsShown = false;
     let messages = [];
     let isTyping = false;
 
@@ -1465,7 +1466,6 @@ body[data-theme="light"] .message-input::placeholder {
     let themeToggleButtons = [];
     let headerTitle;
     let resetChatButton;
-    let initialOptionsContainer = null;
 
     document.addEventListener("DOMContentLoaded", () => {
       createIcons({ icons });
@@ -1624,7 +1624,7 @@ body[data-theme="light"] .message-input::placeholder {
     function startChatExperience() {
       messages = [];
       isTyping = false;
-      initialOptionsContainer = null;
+      initialOptionsShown = false;
       if (messagesContainer) {
         messagesContainer.innerHTML = "";
       }
@@ -1632,13 +1632,7 @@ body[data-theme="light"] .message-input::placeholder {
         sendButton.disabled = false;
       }
       showWelcome();
-      setTimeout(() => {
-        const welcome = document.querySelector(".welcome-screen");
-        if (welcome) {
-          welcome.remove();
-        }
-        showInitialOptions();
-      }, 2500);
+      addMessage("assistant", TEXT.initialQuestion);
       input?.focus();
     }
 
@@ -1666,10 +1660,10 @@ body[data-theme="light"] .message-input::placeholder {
 
       messages = [];
       isTyping = false;
-      initialOptionsContainer = null;
+      initialOptionsShown = false;
       sendButton?.removeAttribute("disabled");
 
-      showInitialOptions();
+      addMessage("assistant", TEXT.initialQuestion);
       messagesContainer?.scrollTo({ top: 0, behavior: "smooth" });
       input?.focus();
     }
@@ -1737,31 +1731,36 @@ function revealOptionsAfterTyping(
 }
 
 
-
     function showInitialOptions() {
-      const message = addMessage("assistant", TEXT.initialQuestion);
-      if (!message) return;
+      const lastAssistantMessage = document.querySelector(
+        ".message.assistant:last-child"
+      );
+      if (!lastAssistantMessage) return;
 
       const container = document.createElement("div");
       container.className = "options-container initial-options";
-      message.appendChild(container);
-      const bubble = message.querySelector(".message-bubble");
-      revealOptionsAfterTyping(bubble, container);
-      initialOptionsContainer = container;
-      renderInitialOptions();
-    }
 
-    function renderInitialOptions() {
-      if (!initialOptionsContainer) return;
-      initialOptionsContainer.innerHTML = "";
-      TEXT.initialOptions.forEach((option) => {
+      const options = [
+        "¿Quién fui y por qué soy importante para Chile?",
+        "¿Qué ocurrió realmente en el Combate Naval de Iquique?",
+        "¿Qué valores guiaron mi vida y mis decisiones?",
+      ];
+
+      options.forEach((optionText) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "option-button";
-        button.textContent = option.label;
-        button.addEventListener("click", () => sendMessage(option.prompt));
-        initialOptionsContainer.appendChild(button);
+        button.textContent = optionText;
+        button.addEventListener("click", () => {
+          container.remove();
+          sendMessage(optionText);
+        });
+        container.appendChild(button);
       });
+
+      lastAssistantMessage.appendChild(container);
+      const bubble = lastAssistantMessage.querySelector(".message-bubble");
+      revealOptionsAfterTyping(bubble, container);
     }
 
     function scrollMessagesToBottom() {
@@ -1883,6 +1882,15 @@ function revealOptionsAfterTyping(
       messageDiv.appendChild(bubble);
       messagesContainer.appendChild(messageDiv);
       scrollMessagesToBottom();
+
+      if (role === "assistant" && !initialOptionsShown) {
+        initialOptionsShown = true;
+        const welcome = document.querySelector(".welcome-screen");
+        if (welcome) {
+          welcome.remove();
+        }
+        showInitialOptions();
+      }
       return messageDiv;
     }
 
