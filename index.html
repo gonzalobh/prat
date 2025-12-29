@@ -1792,7 +1792,7 @@ function revealOptionsAfterTyping(
 
       lastAssistantMessage.appendChild(container);
       const bubble = lastAssistantMessage.querySelector(".message-bubble");
-      revealOptionsAfterTyping(bubble, container);
+      revealOptionsAfterTyping(bubble, container, "pending-display", 2000);
     }
 
     function scrollMessagesToBottom() {
