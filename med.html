@@ -1501,8 +1501,6 @@ body {
     let themeToggleButtons = [];
     let headerTitle;
     let resetChatButton;
-    const DEFAULT_RESPONSE_OPTIONS = ["Sí", "No", "Un poco", "No estoy seguro"];
-
     document.addEventListener("DOMContentLoaded", () => {
       createIcons({ icons });
       initializeApp();
@@ -1724,76 +1722,6 @@ function showWelcome() {
 }
 
 
-function revealOptionsAfterTyping(
-  bubble,
-  element,
-  hiddenClass = "pending-display",
-  delayMs = 0
-) {
-  if (!element) return;
-
-  element.classList.add(hiddenClass);
-
-  let revealed = false;
-  const show = () => {
-    if (revealed) return;
-    revealed = true;
-    if (!element.isConnected) return;
-    if (delayMs > 0) {
-      setTimeout(() => {
-        if (element.isConnected) {
-          element.classList.remove(hiddenClass);
-        }
-      }, delayMs);
-      return;
-    }
-    element.classList.remove(hiddenClass);
-  };
-
-  if (!bubble) {
-    show();
-    return;
-  }
-
-  bubble.addEventListener("typingcomplete", show, { once: true });
-
-  // Fallback de seguridad
-  setTimeout(show, 3500 + delayMs);
-
-  if (bubble.dataset.typingComplete === "true") {
-    show();
-  }
-}
-
-
-    function showInitialOptions() {
-      const lastAssistantMessage = document.querySelector(
-        ".message.assistant:last-child"
-      );
-      if (!lastAssistantMessage) return;
-
-      const container = document.createElement("div");
-      container.className = "options-container initial-options";
-
-      const options = ["Dolor", "Fiebre", "Otro síntoma"];
-
-      options.forEach((optionText) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "option-button";
-        button.textContent = optionText;
-        button.addEventListener("click", () => {
-          container.remove();
-          sendMessage(optionText);
-        });
-        container.appendChild(button);
-      });
-
-      lastAssistantMessage.appendChild(container);
-      const bubble = lastAssistantMessage.querySelector(".message-bubble");
-      revealOptionsAfterTyping(bubble, container, "pending-display", 2000);
-    }
-
     function scrollMessagesToBottom() {
       if (!messagesContainer) return;
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1920,43 +1848,9 @@ function revealOptionsAfterTyping(
         if (welcome) {
           welcome.remove();
         }
-        showInitialOptions();
       }
       return messageDiv;
     }
-
-function getSuggestedResponseOption(text, index) {
-  const trimmed = text?.trim() || "";
-  if (!trimmed) return DEFAULT_RESPONSE_OPTIONS[index % DEFAULT_RESPONSE_OPTIONS.length];
-  const isQuestion = /[¿?]/.test(trimmed);
-  return isQuestion ? DEFAULT_RESPONSE_OPTIONS[index % DEFAULT_RESPONSE_OPTIONS.length] : trimmed;
-}
-
-function showFollowUpOptions(messageElement, questions) {
-  if (!questions || questions.length === 0) return;
-
-  const container = document.createElement("div");
-  container.className = "options-container follow-up-options is-hidden";
-
-  questions.forEach((q, index) => {
-    const button = document.createElement("button");
-    button.type = "button";
-    button.className = "option-button";
-    button.textContent = getSuggestedResponseOption(q, index);
-
-    button.addEventListener("click", () => {
-      sendMessage(button.textContent);
-    });
-
-    container.appendChild(button);
-  });
-
-  messageElement.appendChild(container);
-
-  const bubble = messageElement.querySelector(".message-bubble");
-  revealOptionsAfterTyping(bubble, container, "is-hidden", 2000);
-}
-
 
     function showTypingIndicator() {
       if (!messagesContainer) return null;
@@ -1985,10 +1879,6 @@ function showFollowUpOptions(messageElement, questions) {
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
 
-  document
-    .querySelectorAll(".follow-up-options")
-    .forEach((element) => element.remove());
-
   isTyping = true;
   messages.push({ role: "user", content: sanitizedText });
   addMessage("user", sanitizedText);
@@ -2015,17 +1905,10 @@ function showFollowUpOptions(messageElement, questions) {
     const data = await response.json();
 
     const reply = data?.answer || TEXT.errorMessages.fetch;
-    const suggestedQuestions = data?.suggested_questions || [];
-
     messages.push({ role: "assistant", content: reply });
     typingIndicator?.remove();
 
     const messageElement = addMessage("assistant", reply);
-
-    // 👇 esto YA está bien, no lo cambies
-    if (suggestedQuestions.length && messageElement) {
-      showFollowUpOptions(messageElement, suggestedQuestions);
-    }
 
   } catch (error) {
     typingIndicator?.remove();
