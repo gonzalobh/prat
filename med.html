@@ -1465,6 +1465,7 @@ body {
       headerTitle: "Dr. Prat",
       headerSubtitle: "Médico general",
       placeholder: "Cuéntame qué te preocupa...",
+      responsePlaceholder: "Escribe tu respuesta aquí…",
       themeToggle: {
         toLight: "Volver al modo claro",
         toDark: "Activar el modo oscuro",
@@ -1786,7 +1787,7 @@ function revealOptionsAfterTyping(
         button.textContent = optionText;
         button.addEventListener("click", () => {
           container.remove();
-          sendMessage(optionText);
+          promptUserResponse(optionText);
         });
         container.appendChild(button);
       });
@@ -1940,7 +1941,7 @@ function showFollowUpOptions(messageElement, questions) {
     button.textContent = q;
 
     button.addEventListener("click", () => {
-      sendMessage(q);
+      promptUserResponse(q);
     });
 
     container.appendChild(button);
@@ -1950,6 +1951,18 @@ function showFollowUpOptions(messageElement, questions) {
 
   const bubble = messageElement.querySelector(".message-bubble");
   revealOptionsAfterTyping(bubble, container, "is-hidden", 2000);
+}
+
+function promptUserResponse(questionText) {
+  if (isTyping) return;
+  document
+    .querySelectorAll(".options-container")
+    .forEach((element) => element.remove());
+  addMessage("assistant", questionText);
+  if (input) {
+    input.placeholder = TEXT.responsePlaceholder;
+    input.focus();
+  }
 }
 
 
@@ -2032,7 +2045,10 @@ function showFollowUpOptions(messageElement, questions) {
     if (sendButton) {
       sendButton.disabled = false;
     }
-    input?.focus();
+    if (input) {
+      input.placeholder = TEXT.placeholder;
+      input.focus();
+    }
   }
 }
 
