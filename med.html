@@ -1748,28 +1748,10 @@ function showWelcome() {
   messagesContainer.appendChild(welcomeDiv);
 }
 
-function renderSuggestedQuestions(messageElement, suggestions) { // 🔧
-  if (!Array.isArray(suggestions) || suggestions.length === 0) return; // 🔧
-  if (!messageElement) return; // 🔧
-
-  const optionsContainer = document.createElement("div"); // 🔧
-  optionsContainer.className = "options-container"; // 🔧
-
-  suggestions.slice(0, 3).forEach((suggestion) => { // 🔧
-    const button = document.createElement("button"); // 🔧
-    button.className = "option-button"; // 🔧
-    button.type = "button"; // 🔧
-    button.textContent = suggestion; // 🔧
-    button.addEventListener("click", () => { // 🔧
-      if (isTyping) return; // 🔧
-      sendMessage(suggestion); // 🔧
-    }); // 🔧
-    optionsContainer.appendChild(button); // 🔧
-  }); // 🔧
-
-  messageElement.appendChild(optionsContainer); // 🔧
-  scrollMessagesToBottom(); // 🔧
-} // 🔧
+function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio UX médico
+  // desactivado: UX médico pro // 🔧 cambio UX médico
+  return; // 🔧 cambio UX médico
+} // 🔧 cambio UX médico
 
 
     function scrollMessagesToBottom() {
@@ -2050,15 +2032,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧
     messages.push({ role: "assistant", content: reply });
     typingIndicator?.remove();
 
-    const messageElement = addMessage("assistant", reply);
-    const bubble = messageElement?.querySelector(".message-bubble"); // 🔧
-    if (bubble) { // 🔧
-      bubble.addEventListener("typingcomplete", () => { // 🔧
-        renderSuggestedQuestions(messageElement, data.suggested_questions); // 🔧
-      }); // 🔧
-    } else { // 🔧
-      renderSuggestedQuestions(messageElement, data.suggested_questions); // 🔧
-    } // 🔧
+    const messageElement = addMessage("assistant", reply); // 🔧 cambio UX médico
 
   } catch (error) {
     typingIndicator?.remove();
