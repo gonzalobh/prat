@@ -1501,6 +1501,7 @@ body {
     let themeToggleButtons = [];
     let headerTitle;
     let resetChatButton;
+    const DEFAULT_RESPONSE_OPTIONS = ["Sí", "No", "Un poco", "No estoy seguro"];
 
     document.addEventListener("DOMContentLoaded", () => {
       createIcons({ icons });
@@ -1774,11 +1775,7 @@ function revealOptionsAfterTyping(
       const container = document.createElement("div");
       container.className = "options-container initial-options";
 
-      const options = [
-  "¿Desde cuándo tienes el síntoma?",
-  "¿Hay dolor o fiebre?",
-  "¿Tomas algún medicamento?"
-      ];
+      const options = ["Dolor", "Fiebre", "Otro síntoma"];
 
       options.forEach((optionText) => {
         const button = document.createElement("button");
@@ -1787,7 +1784,7 @@ function revealOptionsAfterTyping(
         button.textContent = optionText;
         button.addEventListener("click", () => {
           container.remove();
-          promptUserResponse(optionText);
+          sendMessage(optionText);
         });
         container.appendChild(button);
       });
@@ -1928,20 +1925,27 @@ function revealOptionsAfterTyping(
       return messageDiv;
     }
 
+function getSuggestedResponseOption(text, index) {
+  const trimmed = text?.trim() || "";
+  if (!trimmed) return DEFAULT_RESPONSE_OPTIONS[index % DEFAULT_RESPONSE_OPTIONS.length];
+  const isQuestion = /[¿?]/.test(trimmed);
+  return isQuestion ? DEFAULT_RESPONSE_OPTIONS[index % DEFAULT_RESPONSE_OPTIONS.length] : trimmed;
+}
+
 function showFollowUpOptions(messageElement, questions) {
   if (!questions || questions.length === 0) return;
 
   const container = document.createElement("div");
   container.className = "options-container follow-up-options is-hidden";
 
-  questions.forEach((q) => {
+  questions.forEach((q, index) => {
     const button = document.createElement("button");
     button.type = "button";
     button.className = "option-button";
-    button.textContent = q;
+    button.textContent = getSuggestedResponseOption(q, index);
 
     button.addEventListener("click", () => {
-      promptUserResponse(q);
+      sendMessage(button.textContent);
     });
 
     container.appendChild(button);
@@ -1952,20 +1956,6 @@ function showFollowUpOptions(messageElement, questions) {
   const bubble = messageElement.querySelector(".message-bubble");
   revealOptionsAfterTyping(bubble, container, "is-hidden", 2000);
 }
-
-function promptUserResponse(questionText) {
-  if (isTyping) return;
-  document
-    .querySelectorAll(".options-container")
-    .forEach((element) => element.remove());
-  addMessage("assistant", questionText);
-  if (input) {
-    input.placeholder = TEXT.responsePlaceholder;
-    input.focus();
-  }
-}
-
-
 
 
     function showTypingIndicator() {
