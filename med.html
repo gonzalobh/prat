@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Arturo Prat · Conversa con su legado </title>
+  <title>Consulta médica · Orientación y cuidado</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Asistente inspirado en el héroe naval chileno Arturo Prat para conversar sobre historia, valores y liderazgo." />
+  <meta name="description" content="Asistente médico para orientar sobre síntomas, cuidados generales y señales de alarma con un lenguaje claro y humano." />
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600;700&display=swap" rel="stylesheet">
 
@@ -1358,17 +1358,17 @@ body {
           </div>
         </div>
         <p class="hero-panel-subtitle">
-       Conversa con el legado de Arturo Prat y descubre los valores que forjaron su liderazgo.
+       Habla con un médico general para entender síntomas, cuidados y señales de alarma con calma y claridad.
         </p>
       </div>
       <div class="hero-panel-portrait">
         <img
           src="prat.png"
-          alt="Retrato de Arturo Prat"
+          alt="Retrato de un médico general"
         />
       </div>
       <p class="hero-panel-caption">
-        “Al abordaje, muchachos.” — La decisión que definió una era de servicio y valentía.
+        “Estoy aquí para orientarte con calma y claridad sobre tu salud.”
       </p>
     </aside>
 
@@ -1378,21 +1378,21 @@ body {
     <span class="header-portrait" id="headerIcon">
       <img
         src="prat.png"
-        alt="Avatar de Arturo Prat"
+        alt="Avatar de un médico general"
       />
     </span>
 
     <div class="header-titles">
       <h1 class="header-title">
-        <span class="header-title-text">ARTURO PRAT</span>
+        <span class="header-title-text">DR. PRAT</span>
       </h1>
 
       <div class="header-subtitle">
-        <span class="subtitle-text">Héroe naval</span>
-        <span class="flag">⚓</span>
+        <span class="subtitle-text">Médico general</span>
+        <span class="flag">🩺</span>
       </div>
 
-      <div class="header-tagline">Honor, deber y sacrificio</div>
+      <div class="header-tagline">Orientación, calma y cuidado</div>
     </div>
   </div>
 
@@ -1433,7 +1433,7 @@ body {
         type="text"
         id="input"
         class="message-input"
-        placeholder="Conversa con Arturo Prat..."
+        placeholder="Cuéntame qué te preocupa..."
         autocomplete="off"
       />
     </div>
@@ -1461,20 +1461,21 @@ body {
 
     const TEXT = {
       htmlLang: "es",
-      title: "Arturo · Asistente del héroe naval",
-      headerTitle: "Arturo Prat",
-      headerSubtitle: "Héroe naval chileno",
-      placeholder: "Conversa con Arturo Prat...",
+      title: "Consulta médica · Asistente de salud",
+      headerTitle: "Dr. Prat",
+      headerSubtitle: "Médico general",
+      placeholder: "Cuéntame qué te preocupa...",
       themeToggle: {
         toLight: "Volver al modo claro",
         toDark: "Activar el modo oscuro",
       },
       welcome: {
-        title: "¡Hola! Soy Arturo Prat",
+        title: "¡Hola! Soy tu médico de orientación",
         subtitle:
-          "Estoy aquí para conversar sobre historia naval, valores y liderazgo chileno. Pregúntame lo que quieras.",
+          "Estoy aquí para escucharte, orientar y explicarte con claridad. Después de cada respuesta, haré preguntas breves para entender mejor.",
       },
-      initialQuestion: "Soy Arturo Prat. Puedes preguntarme libremente sobre mi vida.",
+      initialQuestion:
+        "Soy un médico general. Cuéntame qué síntoma o problema de salud te preocupa.",
       initialOptions: [],
       errorMessages: {
         network:
@@ -1773,9 +1774,9 @@ function revealOptionsAfterTyping(
       container.className = "options-container initial-options";
 
       const options = [
-  "¿Qué pasó realmente en Iquique?",
-  "¿Por qué di mi vida por Chile?",
-  "¿Qué valores guiaron mis decisiones?"
+  "¿Desde cuándo tienes el síntoma?",
+  "¿Hay dolor o fiebre?",
+  "¿Tomas algún medicamento?"
       ];
 
       options.forEach((optionText) => {
