@@ -796,7 +796,6 @@
       backdrop-filter: blur(8px); /* // 🎨 estilo clínico */
       border: 1px solid rgba(229, 231, 235, 0.9); /* // 🎨 estilo clínico */
       transition: border-color 0.4s ease, background 0.6s ease, color 0.6s ease;
-      white-space: pre-line;
       position: relative;
     }
 
@@ -847,15 +846,6 @@
       font-weight: 500;
       font-size: 1.02em; /* // 🎨 estilo clínico */
       color: var(--color-ink); /* // 🎨 estilo clínico */
-    }
-
-    .clinical-question-item {
-      font-weight: 500;
-      margin-top: 6px;
-    }
-
-    .clinical-question-item:first-child {
-      margin-top: 0;
     }
 
     body[data-theme="light"] .clinical-question-block {
@@ -1706,6 +1696,7 @@ body {
       }
       showWelcome();
       addMessage("assistant", TEXT.initialQuestion);
+      messages.push({ role: "assistant", content: TEXT.initialQuestion }); // 🔧
       input?.focus();
     }
 
@@ -1737,6 +1728,7 @@ body {
       sendButton?.removeAttribute("disabled");
 
       addMessage("assistant", TEXT.initialQuestion);
+      messages.push({ role: "assistant", content: TEXT.initialQuestion }); // 🔧
       messagesContainer?.scrollTo({ top: 0, behavior: "smooth" });
       input?.focus();
     }
@@ -1815,45 +1807,6 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       return { leading, question };
     }
 
-    function splitTrailingQuestions(text, maxQuestions = 2) {
-      const trimmed = (text || "").trimEnd();
-      if (!trimmed.endsWith("?")) return null;
-
-      const lines = trimmed
-        .split("\n")
-        .map((l) => l.trim())
-        .filter(Boolean);
-
-      if (!lines.length) return null;
-
-      // Tomar desde el final hasta maxQuestions líneas que terminen en '?'
-      const questions = [];
-      let cutIndex = lines.length;
-
-      for (let i = lines.length - 1; i >= 0; i--) {
-        const l = lines[i];
-        if (l.endsWith("?")) {
-          questions.unshift(l);
-          cutIndex = i;
-          if (questions.length >= maxQuestions) break;
-        } else {
-          // si ya empezamos a capturar preguntas y aparece una línea sin '?', paramos
-          if (questions.length) break;
-        }
-      }
-
-      // Si solo hay 1 pregunta, reutiliza splitQuestionText para separar bien el texto+pregunta
-      if (questions.length <= 1) {
-        const single = splitQuestionText(trimmed);
-        if (!single) return null;
-        return { leading: single.leading, questions: [single.question] };
-      }
-
-      const leading = lines.slice(0, cutIndex).join("\n").trimEnd();
-      return { leading, questions };
-    }
-
-
     function findLastMeaningfulNode(root) {
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
       let lastNode = null;
@@ -1874,24 +1827,14 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       if (!fullText.trim().endsWith("?")) return;
 
       if (!wrapper.innerHTML.includes("<")) {
-        const split = splitTrailingQuestions(fullText, 2);
+        const split = splitQuestionText(fullText);
         if (!split) return;
-
         wrapper.textContent = "";
         if (split.leading) {
           wrapper.appendChild(document.createTextNode(split.leading));
         }
-
         const { block, question } = buildClinicalQuestionBlock();
-
-        // Render 1–2 preguntas al final
-        split.questions.forEach((q) => {
-          const item = document.createElement("div");
-          item.className = "clinical-question-item";
-          item.textContent = q;
-          question.appendChild(item);
-        });
-
+        question.textContent = split.question;
         wrapper.appendChild(block);
         return;
       }
@@ -1919,7 +1862,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
 
     function animateAssistantMessage(bubble, content) {
       const wrapper = document.createElement("div");
-      wrapper.textContent = content || "";
+      wrapper.innerHTML = content || "";
       applyClinicalQuestionStyle(wrapper);
       const nodesQueue = Array.from(wrapper.childNodes);
       bubble.innerHTML = "";
@@ -2021,7 +1964,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       if (role === "assistant") {
         animateAssistantMessage(bubble, content);
       } else {
-        bubble.textContent = content;
+        bubble.innerHTML = content;
       }
 
       messageDiv.appendChild(bubble);
