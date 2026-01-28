@@ -1487,13 +1487,33 @@ body {
         toDark: "Activar el modo oscuro",
       },
       welcome: {
-        title: "¡Hola! Soy tu médico de orientación",
+        title: "Hola",
         subtitle:
-          "Estoy aquí para escucharte, orientar y explicarte con claridad. Después de cada respuesta, haré preguntas breves para entender mejor.",
+          "Puedo ayudarte a orientarte frente a un problema de salud,\n" +
+          "entender qué podría estar pasando\n" +
+          "y cuándo es importante consultar a un médico.\n\n" +
+          "No realizo diagnósticos ni indico tratamientos,\n" +
+          "pero te ayudo a tomar mejores decisiones.",
       },
-      initialQuestion:
-        "Soy un médico general. Cuéntame qué síntoma o problema de salud te preocupa.",
-      initialOptions: [],
+      initialQuestion: "",
+      initialOptions: [
+        {
+          label: "Tengo un síntoma o molestia",
+          message: "Tengo un síntoma o molestia y quiero orientación médica.",
+        },
+        {
+          label: "Estoy preocupado por alguien cercano",
+          message: "Estoy preocupado por un problema de salud de alguien cercano.",
+        },
+        {
+          label: "Quiero saber si debo consultar",
+          message: "Quiero saber si es necesario consultar a un médico.",
+        },
+        {
+          label: "Quiero prepararme para una consulta médica",
+          message: "Quiero prepararme para una consulta médica.",
+        },
+      ],
       errorMessages: {
         network:
           "Lo siento, hubo un problema al conectar con el servidor. Inténtalo de nuevo.",
@@ -1681,7 +1701,10 @@ body {
         sendButton.disabled = false;
       }
       showWelcome();
-      addMessage("assistant", TEXT.initialQuestion);
+      renderInitialOptions();
+      if (TEXT.initialQuestion) {
+        addMessage("assistant", TEXT.initialQuestion);
+      }
       input?.focus();
     }
 
@@ -1712,7 +1735,11 @@ body {
       initialOptionsShown = false;
       sendButton?.removeAttribute("disabled");
 
-      addMessage("assistant", TEXT.initialQuestion);
+      showWelcome();
+      renderInitialOptions();
+      if (TEXT.initialQuestion) {
+        addMessage("assistant", TEXT.initialQuestion);
+      }
       messagesContainer?.scrollTo({ top: 0, behavior: "smooth" });
       input?.focus();
     }
@@ -1735,6 +1762,34 @@ function showWelcome() {
   welcomeDiv.appendChild(subtitle);
 
   messagesContainer.appendChild(welcomeDiv);
+}
+
+function removeInitialOptions() {
+  document.querySelectorAll(".options-container.initial-options").forEach((node) => {
+    node.remove();
+  });
+}
+
+function renderInitialOptions() {
+  if (!messagesContainer || !TEXT.initialOptions.length) return;
+
+  const optionsContainer = document.createElement("div");
+  optionsContainer.className = "options-container initial-options";
+
+  TEXT.initialOptions.forEach((option) => {
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "option-button";
+    button.textContent = option.label;
+    button.addEventListener("click", () => {
+      optionsContainer.remove();
+      sendMessage(option.message);
+    });
+    optionsContainer.appendChild(button);
+  });
+
+  messagesContainer.appendChild(optionsContainer);
+  scrollMessagesToBottom();
 }
 
 function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio UX médico
@@ -2041,6 +2096,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
 
+  removeInitialOptions();
   isTyping = true;
   messages.push({ role: "user", content: sanitizedText });
   addMessage("user", sanitizedText);
