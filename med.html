@@ -663,6 +663,93 @@
       -webkit-overflow-scrolling: touch;
     }
 
+    .chat-menu-wrapper {
+      position: sticky;
+      top: 16px;
+      align-self: flex-end;
+      margin-left: auto;
+      z-index: 5;
+    }
+
+    .chat-menu-button {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--color-muted);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 18px;
+      line-height: 1;
+      transition: transform 0.3s var(--transition-soft), border-color 0.3s ease, color 0.3s ease;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+    }
+
+    .chat-menu-button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(201, 221, 182, 0.9);
+      color: #4c6351;
+    }
+
+    .chat-menu-button:focus-visible {
+      outline: 2px solid var(--color-accent);
+      outline-offset: 3px;
+    }
+
+    .chat-menu {
+      position: absolute;
+      top: 42px;
+      right: 0;
+      min-width: 230px;
+      padding: 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      background: rgba(255, 255, 255, 0.96);
+      box-shadow: 0 18px 45px rgba(31, 42, 68, 0.12);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-6px);
+      transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
+      pointer-events: none;
+    }
+
+    .chat-menu-wrapper.is-open .chat-menu {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .chat-menu-item {
+      width: 100%;
+      border: 0;
+      background: rgba(201, 221, 182, 0.18);
+      color: var(--color-ink);
+      padding: 10px 12px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s ease;
+    }
+
+    .chat-menu-item:hover {
+      background: rgba(201, 221, 182, 0.3);
+      transform: translateY(-1px);
+    }
+
+    .chat-menu-note {
+      margin-top: 10px;
+      font-size: 12px;
+      color: var(--color-muted);
+      line-height: 1.6;
+    }
+
     .messages-container::-webkit-scrollbar {
       width: 6px;
     }
@@ -1464,7 +1551,26 @@ body {
   </div>
 </header>
 
-    <main class="messages-container" id="messages"></main>
+    <main class="messages-container" id="messages">
+      <div class="chat-menu-wrapper" id="chatMenuWrapper">
+        <button
+          type="button"
+          class="chat-menu-button"
+          id="chatMenuButton"
+          aria-label="Abrir opciones del chat"
+          aria-expanded="false"
+        >
+          ⋯
+        </button>
+        <div class="chat-menu" id="chatMenu" role="menu" aria-hidden="true">
+          <button type="button" class="chat-menu-item" id="chatResetOption" role="menuitem">
+            <span aria-hidden="true">↺</span>
+            <span>Reiniciar chat</span>
+          </button>
+          <p class="chat-menu-note">La conversación se guarda solo en este navegador.</p>
+        </div>
+      </div>
+    </main>
 
     <button type="button" id="resetChatBtn" class="floating-reset" aria-label="Reiniciar la conversación" style="display:none">
       <svg
@@ -1564,10 +1670,12 @@ body {
     };
 
     const THEME_STORAGE_KEY = "theme-preference";
+    const CHAT_STORAGE_KEY = "med-chat-history";
     const API_URL = "https://hotel-chat-proxy.vercel.app/api/med";
 
     let initialOptionsShown = false;
     let messages = [];
+    let storedMessages = [];
     let isTyping = false;
 
     let messagesContainer;
@@ -1579,6 +1687,10 @@ body {
     let themeToggleButtons = [];
     let headerTitle;
     let resetChatButton;
+    let chatMenuWrapper;
+    let chatMenuButton;
+    let chatMenu;
+    let chatResetOption;
     document.addEventListener("DOMContentLoaded", () => {
       createIcons({ icons });
       initializeApp();
@@ -1594,6 +1706,10 @@ body {
       sendIcon = document.getElementById("sendIcon");
       headerIcon = document.getElementById("headerIcon");
       resetChatButton = document.getElementById("resetChatBtn");
+      chatMenuWrapper = document.getElementById("chatMenuWrapper");
+      chatMenuButton = document.getElementById("chatMenuButton");
+      chatMenu = document.getElementById("chatMenu");
+      chatResetOption = document.getElementById("chatResetOption");
 
       renderIcon(sendIcon, "send", { width: 20, height: 20, strokeWidth: 1.6 });
 
@@ -1601,7 +1717,10 @@ body {
       initializeTheme();
       setupThemeToggle();
 
-      startChatExperience();
+      const restored = restoreChatFromStorage();
+      if (!restored) {
+        startChatExperience();
+      }
 
       if (form) {
         form.addEventListener("submit", (event) => {
@@ -1625,6 +1744,33 @@ body {
       if (resetChatButton) {
         resetChatButton.addEventListener("click", handleChatReset);
       }
+
+      if (chatMenuButton) {
+        chatMenuButton.addEventListener("click", (event) => {
+          event.stopPropagation();
+          toggleChatMenu();
+        });
+      }
+
+      if (chatResetOption) {
+        chatResetOption.addEventListener("click", (event) => {
+          event.stopPropagation();
+          closeChatMenu();
+          handleChatReset();
+        });
+      }
+
+      document.addEventListener("click", (event) => {
+        if (chatMenuWrapper && !chatMenuWrapper.contains(event.target)) {
+          closeChatMenu();
+        }
+      });
+
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          closeChatMenu();
+        }
+      });
     }
 
     function applyLanguageSettings() {
@@ -1687,6 +1833,81 @@ body {
       });
     }
 
+    function toggleChatMenu() {
+      if (!chatMenuWrapper || !chatMenuButton || !chatMenu) return;
+      const isOpen = chatMenuWrapper.classList.toggle("is-open");
+      chatMenuButton.setAttribute("aria-expanded", String(isOpen));
+      chatMenu.setAttribute("aria-hidden", String(!isOpen));
+    }
+
+    function closeChatMenu() {
+      if (!chatMenuWrapper || !chatMenuButton || !chatMenu) return;
+      chatMenuWrapper.classList.remove("is-open");
+      chatMenuButton.setAttribute("aria-expanded", "false");
+      chatMenu.setAttribute("aria-hidden", "true");
+    }
+
+    function persistStoredMessages() {
+      try {
+        localStorage.setItem(CHAT_STORAGE_KEY, JSON.stringify(storedMessages));
+      } catch (error) {}
+    }
+
+    function loadStoredMessages() {
+      try {
+        const raw = localStorage.getItem(CHAT_STORAGE_KEY);
+        if (!raw) return [];
+        const parsed = JSON.parse(raw);
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .filter((item) => item && typeof item.content === "string" && typeof item.role === "string")
+          .map((item) => ({ role: item.role, content: item.content }));
+      } catch (error) {
+        return [];
+      }
+    }
+
+    function buildApiMessagesFromStored(history) {
+      return history.filter((message, index) => {
+        if (message.role !== "assistant") return true;
+        if (index === 0 && message.content === TEXT.initialQuestion) return false;
+        if (message.content === TEXT.errorMessages.network) return false;
+        if (message.content === TEXT.errorMessages.fetch) return false;
+        return true;
+      });
+    }
+
+    function restoreChatFromStorage() {
+      storedMessages = loadStoredMessages();
+      if (!storedMessages.length) return false;
+      messages = buildApiMessagesFromStored(storedMessages);
+      isTyping = false;
+      initialOptionsShown = true;
+      if (messagesContainer) {
+        resetMessagesContainer();
+        storedMessages.forEach((message) => {
+          addMessage(message.role, message.content, { animate: false });
+        });
+        scrollMessagesToBottom();
+      }
+      if (sendButton) {
+        sendButton.disabled = false;
+      }
+      return true;
+    }
+
+    function resetMessagesContainer() {
+      if (!messagesContainer) return;
+      const menu = chatMenuWrapper;
+      if (menu && menu.parentElement === messagesContainer) {
+        menu.remove();
+      }
+      messagesContainer.innerHTML = "";
+      if (menu) {
+        messagesContainer.appendChild(menu);
+      }
+    }
+
     function renderIcon(element, name, options = {}) {
       if (!element) return;
 
@@ -1736,10 +1957,11 @@ body {
 
     function startChatExperience() {
       messages = [];
+      storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
       if (messagesContainer) {
-        messagesContainer.innerHTML = "";
+        resetMessagesContainer();
       }
       if (sendButton) {
         sendButton.disabled = false;
@@ -1747,7 +1969,7 @@ body {
       showWelcome();
       renderInitialOptions();
       if (TEXT.initialQuestion) {
-        addMessage("assistant", TEXT.initialQuestion);
+        appendMessage("assistant", TEXT.initialQuestion, { includeInApi: false });
       }
       input?.focus();
     }
@@ -1758,8 +1980,12 @@ body {
         setTimeout(() => resetChatButton?.classList.remove("spinning"), 650);
       }
 
+      try {
+        localStorage.removeItem(CHAT_STORAGE_KEY);
+      } catch (error) {}
+
       if (messagesContainer) {
-        messagesContainer.innerHTML = "";
+        resetMessagesContainer();
         messagesContainer.scrollTop = 0;
       }
 
@@ -1775,6 +2001,7 @@ body {
         });
 
       messages = [];
+      storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
       sendButton?.removeAttribute("disabled");
@@ -1782,7 +2009,7 @@ body {
       showWelcome();
       renderInitialOptions();
       if (TEXT.initialQuestion) {
-        addMessage("assistant", TEXT.initialQuestion);
+        appendMessage("assistant", TEXT.initialQuestion, { includeInApi: false });
       }
       messagesContainer?.scrollTo({ top: 0, behavior: "smooth" });
       input?.focus();
@@ -2102,7 +2329,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       processNextNode();
     }
 
-    function addMessage(role, content) {
+    function addMessage(role, content, { animate = true } = {}) {
       if (!messagesContainer) return null;
 
       const messageDiv = document.createElement("div");
@@ -2112,7 +2339,11 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       bubble.className = "message-bubble";
 
       if (role === "assistant") {
-        animateAssistantMessage(bubble, content);
+        if (animate) {
+          animateAssistantMessage(bubble, content);
+        } else {
+          bubble.textContent = content;
+        }
       } else {
         bubble.textContent = content;
       }
@@ -2129,6 +2360,20 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
         }
       }
       return messageDiv;
+    }
+
+    function recordMessage(role, content, { includeInApi = true } = {}) {
+      storedMessages.push({ role, content });
+      if (includeInApi) {
+        messages.push({ role, content });
+      }
+      persistStoredMessages();
+    }
+
+    function appendMessage(role, content, { animate = true, includeInApi = true } = {}) {
+      const messageElement = addMessage(role, content, { animate });
+      recordMessage(role, content, { includeInApi });
+      return messageElement;
     }
 
     function showTypingIndicator() {
@@ -2160,8 +2405,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
 
   removeInitialOptions();
   isTyping = true;
-  messages.push({ role: "user", content: sanitizedText });
-  addMessage("user", sanitizedText);
+  appendMessage("user", sanitizedText);
 
   const typingIndicator = showTypingIndicator();
   if (sendButton) {
@@ -2185,14 +2429,13 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
     const data = await response.json();
 
     const reply = data?.answer || TEXT.errorMessages.fetch;
-    messages.push({ role: "assistant", content: reply });
     typingIndicator?.remove();
 
-    const messageElement = addMessage("assistant", reply); // 🔧 cambio UX médico
+    const messageElement = appendMessage("assistant", reply); // 🔧 cambio UX médico
 
   } catch (error) {
     typingIndicator?.remove();
-    addMessage("assistant", TEXT.errorMessages.network);
+    appendMessage("assistant", TEXT.errorMessages.network, { includeInApi: false });
   } finally {
     isTyping = false;
     if (sendButton) {
