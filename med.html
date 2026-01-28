@@ -1089,20 +1089,33 @@
 
     .welcome-title {
       font-family: var(--font-display);
-      font-size: 26px;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
+      font-size: 24px;
+      letter-spacing: 0.02em;
+      text-transform: none;
     }
 
     .welcome-subtitle {
-      max-width: 320px;
+      max-width: 360px;
       color: var(--color-muted); /* // 🎨 estilo clínico */
       font-size: 15px;
       line-height: 1.8;
+      white-space: pre-line;
+    }
+
+    .welcome-disclaimer {
+      max-width: 360px;
+      color: var(--color-muted-dark); /* // 🎨 estilo clínico */
+      font-size: 13px;
+      line-height: 1.7;
+      white-space: pre-line;
     }
 
     body[data-theme="light"] .welcome-subtitle {
       color: var(--color-muted); /* // 🎨 estilo clínico */
+    }
+
+    body[data-theme="light"] .welcome-disclaimer {
+      color: var(--color-muted-dark); /* // 🎨 estilo clínico */
     }
 
 
@@ -1487,14 +1500,13 @@ body {
         toDark: "Activar el modo oscuro",
       },
       welcome: {
-        title: "Hola.",
+        title: "Veamos juntos qué puede estar pasando.",
         subtitle:
-          "Estoy aquí para ayudarte a orientarte frente a un problema de salud,\n" +
-          "entender qué podría estar pasando\n" +
-          "y saber cuándo es importante consultar a un médico.\n\n" +
+          "Puedo ayudarte a orientarte frente a un problema de salud\n" +
+          "y a decidir cuándo es importante consultar a un médico.",
+        disclaimer:
           "No reemplazo una evaluación médica\n" +
-          "ni realizo diagnósticos o tratamientos,\n" +
-          "pero puedo ayudarte a tomar decisiones más claras y tranquilas.",
+          "ni realizo diagnósticos o tratamientos.",
       },
       initialQuestion: "",
       initialOptions: [
@@ -1596,6 +1608,8 @@ body {
       if (welcomeTitle) welcomeTitle.textContent = TEXT.welcome.title;
       const welcomeSubtitle = document.querySelector(".welcome-subtitle");
       if (welcomeSubtitle) welcomeSubtitle.textContent = TEXT.welcome.subtitle;
+      const welcomeDisclaimer = document.querySelector(".welcome-disclaimer");
+      if (welcomeDisclaimer) welcomeDisclaimer.textContent = TEXT.welcome.disclaimer;
 
       applyTheme(getCurrentTheme(), { persist: false });
     }
@@ -1759,8 +1773,13 @@ function showWelcome() {
   subtitle.className = "welcome-subtitle";
   subtitle.textContent = TEXT.welcome.subtitle;
 
+  const disclaimer = document.createElement("p");
+  disclaimer.className = "welcome-disclaimer";
+  disclaimer.textContent = TEXT.welcome.disclaimer;
+
   welcomeDiv.appendChild(title);
   welcomeDiv.appendChild(subtitle);
+  welcomeDiv.appendChild(disclaimer);
 
   messagesContainer.appendChild(welcomeDiv);
 }
