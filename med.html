@@ -891,6 +891,67 @@
       box-shadow: 0 12px 24px rgba(31, 42, 68, 0.1); /* // 🎨 estilo clínico */
     }
 
+    .summary-card {
+      align-self: flex-start;
+      width: min(640px, 100%);
+      padding: 20px 22px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      box-shadow: 0 14px 30px rgba(31, 42, 68, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .summary-card-label {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    .summary-card-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-ink);
+    }
+
+    .summary-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .summary-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    .summary-section-text {
+      font-size: 15px;
+      color: var(--color-ink);
+      line-height: 1.6;
+    }
+
+    .summary-disclaimer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--color-muted);
+      line-height: 1.6;
+    }
+
+    body[data-theme="light"] .summary-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: rgba(229, 231, 235, 0.9);
+      box-shadow: 0 16px 34px rgba(31, 42, 68, 0.12);
+    }
+
     .clinical-question-block {
       margin-top: 14px;
       padding-top: 10px;
@@ -1677,6 +1738,26 @@ body {
     let messages = [];
     let storedMessages = [];
     let isTyping = false;
+    let summaryShown = false;
+    let summaryCard = null;
+    let pendingSummaryTrigger = false;
+    const conversationState = { // MODIFICADO
+      symptomProvided: false, // MODIFICADO
+      durationProvided: false, // MODIFICADO
+      feverProvided: false, // MODIFICADO
+      medicationAsked: false, // MODIFICADO
+      medicationAnswered: false, // MODIFICADO
+      orientationGiven: false, // MODIFICADO
+      userHasNoMoreQuestions: false, // MODIFICADO
+      conversationClosed: false, // MODIFICADO
+    }; // MODIFICADO
+    let questionHistory = { // MODIFICADO
+      symptomAsked: false, // MODIFICADO
+      durationAsked: false, // MODIFICADO
+      feverAsked: false, // MODIFICADO
+      medicationAsked: false, // MODIFICADO
+    }; // MODIFICADO
+    let clinicalIntroShown = false; // MODIFICADO
 
     let messagesContainer;
     let form;
@@ -1883,6 +1964,7 @@ body {
       messages = buildApiMessagesFromStored(storedMessages);
       isTyping = false;
       initialOptionsShown = true;
+      rebuildConversationStateFromHistory(); // MODIFICADO
       if (messagesContainer) {
         resetMessagesContainer();
         storedMessages.forEach((message) => {
@@ -1893,6 +1975,9 @@ body {
       if (sendButton) {
         sendButton.disabled = false;
       }
+      if (conversationState.conversationClosed) { // MODIFICADO
+        renderSummaryCard(); // MODIFICADO
+      } // MODIFICADO
       return true;
     }
 
@@ -1960,6 +2045,10 @@ body {
       storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
+      summaryShown = false;
+      pendingSummaryTrigger = false;
+      resetConversationState(); // MODIFICADO
+      clearSummaryCard();
       if (messagesContainer) {
         resetMessagesContainer();
       }
@@ -2004,6 +2093,10 @@ body {
       storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
+      summaryShown = false;
+      pendingSummaryTrigger = false;
+      resetConversationState(); // MODIFICADO
+      clearSummaryCard();
       sendButton?.removeAttribute("disabled");
 
       showWelcome();
@@ -2086,6 +2179,482 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   return; // 🔧 cambio UX médico
 } // 🔧 cambio UX médico
 
+function normalizeText(text) {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function hasAny(text, terms) {
+  return terms.some((term) => text.includes(term));
+}
+
+function resetConversationState() { // MODIFICADO
+  conversationState.symptomProvided = false; // MODIFICADO
+  conversationState.durationProvided = false; // MODIFICADO
+  conversationState.feverProvided = false; // MODIFICADO
+  conversationState.medicationAsked = false; // MODIFICADO
+  conversationState.medicationAnswered = false; // MODIFICADO
+  conversationState.orientationGiven = false; // MODIFICADO
+  conversationState.userHasNoMoreQuestions = false; // MODIFICADO
+  conversationState.conversationClosed = false; // MODIFICADO
+  questionHistory = { // MODIFICADO
+    symptomAsked: false, // MODIFICADO
+    durationAsked: false, // MODIFICADO
+    feverAsked: false, // MODIFICADO
+    medicationAsked: false, // MODIFICADO
+  }; // MODIFICADO
+  clinicalIntroShown = false; // MODIFICADO
+} // MODIFICADO
+
+function detectDuration(text) { // MODIFICADO
+  const normalized = normalizeText(text); // MODIFICADO
+  const patterns = [ // MODIFICADO
+    /desde hace\s+\d+\s*(?:minutos|horas|dias|semanas|meses)/, // MODIFICADO
+    /desde hace\s+(?:unos|unas|varios|varias)\s+(?:minutos|horas|dias|semanas|meses)/, // MODIFICADO
+    /hace\s+\d+\s*(?:minutos|horas|dias|semanas|meses)/, // MODIFICADO
+    /hace\s+(?:un|una)\s+(?:dia|semana|mes|año)/, // MODIFICADO
+    /por\s+\d+\s*(?:minutos|horas|dias|semanas|meses)/, // MODIFICADO
+    /desde\s+(?:ayer|anoche|hoy|esta manana|esta tarde|este fin de semana|el\s+\w+)/, // MODIFICADO
+    /desde\s+el\s+\w+/, // MODIFICADO
+  ]; // MODIFICADO
+  return patterns.some((pattern) => pattern.test(normalized)); // MODIFICADO
+} // MODIFICADO
+
+function detectFeverMention(text) { // MODIFICADO
+  const normalized = normalizeText(text); // MODIFICADO
+  if (normalized.includes("fiebre")) return true; // MODIFICADO
+  if (normalized.includes("temperatura")) return true; // MODIFICADO
+  return false; // MODIFICADO
+} // MODIFICADO
+
+function detectMedicationInfo(text) { // MODIFICADO
+  const normalized = normalizeText(text); // MODIFICADO
+  if (hasAny(normalized, ["ibuprofeno", "paracetamol", "acetaminofen", "naproxeno", "amoxicilina"])) { // MODIFICADO
+    return true; // MODIFICADO
+  } // MODIFICADO
+  if (hasAny(normalized, ["medicamento", "medicina", "pastilla", "jarabe", "gotas"])) { // MODIFICADO
+    return true; // MODIFICADO
+  } // MODIFICADO
+  if (hasAny(normalized, ["no he tomado nada", "no tome nada", "no he tomado medicamento", "no estoy tomando"])) { // MODIFICADO
+    return true; // MODIFICADO
+  } // MODIFICADO
+  return false; // MODIFICADO
+} // MODIFICADO
+
+function detectNoMoreQuestions(text) { // MODIFICADO
+  const normalized = normalizeText(text); // MODIFICADO
+  return hasAny(normalized, [ // MODIFICADO
+    "no tengo mas preguntas", // MODIFICADO
+    "no tengo mas dudas", // MODIFICADO
+    "nada mas", // MODIFICADO
+    "eso es todo", // MODIFICADO
+    "no", // MODIFICADO
+    "ninguna otra", // MODIFICADO
+    "no necesito mas", // MODIFICADO
+    "no gracias", // MODIFICADO
+  ]); // MODIFICADO
+} // MODIFICADO
+
+function updateConversationStateFromUser(text) { // MODIFICADO
+  const normalized = normalizeText(text); // MODIFICADO
+  if (!conversationState.symptomProvided) { // MODIFICADO
+    const symptom = extractSymptomPhrase(text); // MODIFICADO
+    if (symptom) { // MODIFICADO
+      conversationState.symptomProvided = true; // MODIFICADO
+    } // MODIFICADO
+  } // MODIFICADO
+  if (!conversationState.durationProvided && detectDuration(normalized)) { // MODIFICADO
+    conversationState.durationProvided = true; // MODIFICADO
+  } // MODIFICADO
+  if (!conversationState.feverProvided && detectFeverMention(normalized)) { // MODIFICADO
+    conversationState.feverProvided = true; // MODIFICADO
+  } // MODIFICADO
+  if (!conversationState.medicationAnswered && detectMedicationInfo(normalized)) { // MODIFICADO
+    conversationState.medicationAnswered = true; // MODIFICADO
+    conversationState.medicationAsked = true; // MODIFICADO
+  } // MODIFICADO
+  if (detectNoMoreQuestions(normalized)) { // MODIFICADO
+    conversationState.userHasNoMoreQuestions = true; // MODIFICADO
+  } // MODIFICADO
+  if (conversationState.userHasNoMoreQuestions &&
+      conversationState.symptomProvided &&
+      conversationState.durationProvided &&
+      conversationState.orientationGiven) { // MODIFICADO
+    conversationState.conversationClosed = true; // MODIFICADO
+  } // MODIFICADO
+} // MODIFICADO
+
+function rebuildConversationStateFromHistory() { // MODIFICADO
+  resetConversationState(); // MODIFICADO
+  storedMessages
+    .filter((message) => message.role === "user") // MODIFICADO
+    .forEach((message) => { // MODIFICADO
+      updateConversationStateFromUser(message.content || ""); // MODIFICADO
+    }); // MODIFICADO
+} // MODIFICADO
+
+function isClosingUserMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "gracias",
+    "ok",
+    "okay",
+    "entendido",
+    "eso era",
+    "era eso",
+    "listo",
+    "perfecto",
+    "vale",
+    "no tengo mas preguntas",
+    "no tengo mas dudas",
+    "nada mas",
+    "eso es todo",
+    "no gracias",
+  ]);
+}
+
+function isAssistantClosingMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "orientacion esta clara",
+    "orientacion queda clara",
+    "con esto queda claro",
+    "con esta informacion es suficiente",
+    "es suficiente por ahora",
+  ]);
+}
+
+function isRecommendationMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "consultar",
+    "consulta",
+    "acudir",
+    "urgencia",
+    "emergencia",
+    "guardia",
+    "observar",
+    "observa",
+    "vigilar",
+    "monitorear",
+  ]);
+}
+
+function messageHasQuestion(text) {
+  return /[?¿]/.test(text || "");
+}
+
+function getLastAssistantMessage() {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role === "assistant") {
+      return message.content || "";
+    }
+  }
+  return "";
+}
+
+function getLastUserMessageText() {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role === "user") {
+      return message.content || "";
+    }
+  }
+  return "";
+}
+
+function hasOpenUserQuestion() {
+  const lastUser = getLastUserMessageText();
+  return messageHasQuestion(lastUser);
+}
+
+function shouldShowSummary(text) {
+  const assistantMessage = text || "";
+  if (!assistantMessage) return false;
+  if (messageHasQuestion(assistantMessage)) return false;
+  if (hasOpenUserQuestion()) return false;
+  if (!isRecommendationMessage(assistantMessage)) return false;
+  return pendingSummaryTrigger || isAssistantClosingMessage(assistantMessage) || isRecommendationMessage(assistantMessage);
+}
+
+function clearSummaryCard() {
+  if (summaryCard) {
+    summaryCard.remove();
+    summaryCard = null;
+  }
+  summaryShown = false;
+}
+
+function getLastUserMessage({ includeClosing = false } = {}) {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role !== "user") continue;
+    if (!includeClosing && isClosingUserMessage(message.content)) continue;
+    return message.content;
+  }
+  return "";
+}
+
+function shortenText(text, maxLength = 160) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxLength) return cleaned;
+  return `${cleaned.slice(0, maxLength).trim()}…`;
+}
+
+function getUserMessagesForSummary() {
+  return storedMessages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content)
+    .filter((content) => content && !isClosingUserMessage(content));
+}
+
+function extractAllSymptoms(text) {
+  const lower = normalizeText(text);
+  const patterns = [
+    { pattern: /dolor de garganta/, label: "dolor de garganta" },
+    { pattern: /dolor de cabeza|cefalea/, label: "dolor de cabeza" },
+    { pattern: /dolor abdominal|dolor de estomago|dolor estomacal/, label: "dolor abdominal" },
+    { pattern: /dolor en el pecho|dolor de pecho/, label: "dolor en el pecho" },
+    { pattern: /dolor de espalda/, label: "dolor de espalda" },
+    { pattern: /dolor de oido|dolor de oreja|dolor de oidos|dolor de orejas/, label: "dolor de oído" },
+    { pattern: /fiebre/, label: "fiebre" },
+    { pattern: /tos/, label: "tos" },
+    { pattern: /congestion|nariz tapada|secrecion nasal|goteo nasal/, label: "congestión nasal" },
+    { pattern: /nausea|nauseas/, label: "náuseas" },
+    { pattern: /vomito|vomitos|v[oó]mito|v[oó]mitos/, label: "vómitos" },
+    { pattern: /diarrea/, label: "diarrea" },
+    { pattern: /mareo|vertigo/, label: "mareo" },
+    { pattern: /fatiga|cansancio/, label: "cansancio" },
+    { pattern: /dificultad para respirar|falta de aire|disnea/, label: "dificultad para respirar" },
+    { pattern: /ardor al orinar|dolor al orinar/, label: "ardor al orinar" },
+    { pattern: /picazon|picor/, label: "picazón" },
+    { pattern: /erupcion|sarpullido/, label: "erupción en la piel" },
+    { pattern: /hinchazon|inflamacion/, label: "hinchazón" },
+  ];
+
+  const matches = [];
+  patterns.forEach((entry) => {
+    if (entry.pattern.test(lower)) {
+      matches.push(entry.label);
+    }
+  });
+
+  const painMatch = lower.match(/dolor (?:de|en)\s+([a-záéíóúñ\s]{2,40})/);
+  if (painMatch) {
+    const location = painMatch[1].trim().replace(/\s+/g, " ");
+    if (location) {
+      matches.push(`dolor de ${location}`);
+    }
+  }
+
+  return Array.from(new Set(matches));
+}
+
+function extractSymptomPhrase(text) {
+  const matches = extractAllSymptoms(text);
+  return matches[0] || "";
+}
+
+function extractRelevantDetails(messages) {
+  const details = [];
+  const durationPatterns = [
+    /(desde hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+    /(hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+    /(por\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+  ];
+  const negationPatterns = [
+    /(sin\s+[a-záéíóúñ\s]+?)([.,;]|$)/i,
+    /(no\s+(?:tengo|he tenido|presento|hay)\s+[a-záéíóúñ\s]+?)([.,;]|$)/i,
+  ];
+
+  messages.forEach((message) => {
+    durationPatterns.forEach((pattern) => {
+      if (details.length >= 2) return;
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const detail = shortenText(match[1], 80);
+        if (!details.includes(detail)) {
+          details.push(detail);
+        }
+      }
+    });
+
+    negationPatterns.forEach((pattern) => {
+      if (details.length >= 2) return;
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const detail = shortenText(match[1], 80);
+        if (!details.includes(detail)) {
+          details.push(detail);
+        }
+      }
+    });
+  });
+
+  return details.slice(0, 2);
+}
+
+function extractOrientationText(text, keywords) {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  for (const sentence of sentences) {
+    const normalized = normalizeText(sentence);
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      return sentence;
+    }
+  }
+  return "";
+}
+
+function extractDurationPhrase(messages) { // MODIFICADO
+  const durationPatterns = [ // MODIFICADO
+    /(desde hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i, // MODIFICADO
+    /(hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i, // MODIFICADO
+    /(por\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i, // MODIFICADO
+    /(desde\s+(?:ayer|anoche|hoy|esta mañana|esta tarde|este fin de semana|el\s+\w+))([.,;]|$)/i, // MODIFICADO
+  ]; // MODIFICADO
+  for (const message of messages) { // MODIFICADO
+    for (const pattern of durationPatterns) { // MODIFICADO
+      const match = message.match(pattern); // MODIFICADO
+      if (match && match[1]) { // MODIFICADO
+        return shortenText(match[1], 80); // MODIFICADO
+      } // MODIFICADO
+    } // MODIFICADO
+  } // MODIFICADO
+  return ""; // MODIFICADO
+} // MODIFICADO
+
+function buildProbableCauses(symptom) { // MODIFICADO
+  const normalized = normalizeText(symptom); // MODIFICADO
+  const map = [ // MODIFICADO
+    { match: ["dolor de garganta"], causes: ["irritación de garganta", "faringitis viral", "resfriado común"] }, // MODIFICADO
+    { match: ["dolor de cabeza", "cefalea"], causes: ["tensión muscular", "migraña leve", "deshidratación"] }, // MODIFICADO
+    { match: ["dolor abdominal"], causes: ["indigestión", "gastroenteritis leve", "gastritis"] }, // MODIFICADO
+    { match: ["tos"], causes: ["infección viral", "irritación de vías respiratorias", "goteo nasal"] }, // MODIFICADO
+    { match: ["congestion nasal"], causes: ["resfriado", "rinitis alérgica", "sinusitis leve"] }, // MODIFICADO
+    { match: ["fiebre"], causes: ["infección viral", "resfriado", "proceso inflamatorio"] }, // MODIFICADO
+    { match: ["diarrea"], causes: ["gastroenteritis", "intolerancia alimentaria", "irritación intestinal"] }, // MODIFICADO
+    { match: ["nauseas", "nausea", "vomitos", "vomito"], causes: ["gastroenteritis", "indigestión", "virus estomacal"] }, // MODIFICADO
+    { match: ["mareo"], causes: ["baja de presión", "deshidratación", "vértigo leve"] }, // MODIFICADO
+    { match: ["dolor en el pecho", "dolor de pecho"], causes: ["irritación muscular", "estrés", "reflujo"] }, // MODIFICADO
+  ]; // MODIFICADO
+  for (const entry of map) { // MODIFICADO
+    if (entry.match.some((term) => normalized.includes(term))) { // MODIFICADO
+      return entry.causes; // MODIFICADO
+    } // MODIFICADO
+  } // MODIFICADO
+  return ["cuadro viral leve", "irritación local", "tensión física"]; // MODIFICADO
+} // MODIFICADO
+
+function detectAlertSigns(messages) { // MODIFICADO
+  const joined = normalizeText(messages.join(" ")); // MODIFICADO
+  if (hasAny(joined, ["dificultad para respirar", "falta de aire", "dolor en el pecho", "desmayo", "confusion"])) { // MODIFICADO
+    return "Si presentas dificultad para respirar, dolor en el pecho, confusión o desmayo, es mejor consultar de urgencia."; // MODIFICADO
+  } // MODIFICADO
+  if (joined.match(/\b39\b|\b40\b|fiebre alta|muy alta/)) { // MODIFICADO
+    return "Si la fiebre es alta o no cede, conviene consultar para una evaluación médica."; // MODIFICADO
+  } // MODIFICADO
+  if (hasAny(joined, ["sangrado", "vomitos persistentes", "dolor intenso"])) { // MODIFICADO
+    return "Si aparece sangrado, vómitos persistentes o dolor muy intenso, consulta cuanto antes."; // MODIFICADO
+  } // MODIFICADO
+  return ""; // MODIFICADO
+} // MODIFICADO
+
+function buildSummaryContent() { // MODIFICADO
+  const userMessages = getUserMessagesForSummary(); // MODIFICADO
+  const fallbackMessages = storedMessages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content); // MODIFICADO
+  const messagesForSummary = userMessages.length ? userMessages : fallbackMessages; // MODIFICADO
+  let symptom = ""; // MODIFICADO
+  for (const message of messagesForSummary) { // MODIFICADO
+    symptom = extractSymptomPhrase(message); // MODIFICADO
+    if (symptom) break; // MODIFICADO
+  } // MODIFICADO
+  if (!symptom) { // MODIFICADO
+    symptom = "síntoma principal no especificado"; // MODIFICADO
+  } // MODIFICADO
+  const duration = extractDurationPhrase(messagesForSummary); // MODIFICADO
+  const durationText = duration ? `, ${duration}` : ", duración no especificada"; // MODIFICADO
+  const motiveText = `Motivo de consulta: ${symptom}${durationText}.`; // MODIFICADO
+
+  const probableCauses = buildProbableCauses(symptom).slice(0, 3); // MODIFICADO
+  const probableText = `Lo más probable es que se trate de ${probableCauses.join(", ")}.`; // MODIFICADO
+
+  const alertText = detectAlertSigns(messagesForSummary); // MODIFICADO
+
+  const recommendationText = alertText
+    ? "Recomendación general: consulta médica si aparecen señales de alarma o empeora el cuadro."
+    : "Recomendación general: observación en casa y consulta médica si el síntoma persiste o se intensifica."; // MODIFICADO
+
+  const sections = [ // MODIFICADO
+    { title: "Motivo de consulta", text: motiveText }, // MODIFICADO
+    { title: "Lo más probable", text: probableText }, // MODIFICADO
+  ]; // MODIFICADO
+
+  if (alertText) { // MODIFICADO
+    sections.push({ title: "Señales de alerta", text: alertText }); // MODIFICADO
+  } // MODIFICADO
+
+  sections.push({ title: "Recomendación general", text: recommendationText }); // MODIFICADO
+
+  return { sections }; // MODIFICADO
+} // MODIFICADO
+
+function renderSummaryCard() { // MODIFICADO
+  if (!messagesContainer || summaryShown) return; // MODIFICADO
+  if (!conversationState.conversationClosed) return; // MODIFICADO
+  const summary = buildSummaryContent(); // MODIFICADO
+
+  const card = document.createElement("section");
+  card.className = "summary-card";
+  card.setAttribute("aria-label", "Resumen final premium");
+
+  const label = document.createElement("div");
+  label.className = "summary-card-label";
+  label.textContent = "Resumen final premium";
+
+  const title = document.createElement("h3");
+  title.className = "summary-card-title";
+  title.textContent = "Resumen de la orientación";
+
+  card.appendChild(label);
+  card.appendChild(title);
+
+  summary.sections.forEach((section) => { // MODIFICADO
+    const block = document.createElement("div");
+    block.className = "summary-section";
+
+    const heading = document.createElement("div");
+    heading.className = "summary-section-title";
+    heading.textContent = section.title;
+
+    const paragraph = document.createElement("p");
+    paragraph.className = "summary-section-text";
+    paragraph.textContent = section.text;
+
+    block.appendChild(heading);
+    block.appendChild(paragraph);
+    card.appendChild(block);
+  });
+
+  const disclaimer = document.createElement("p");
+  disclaimer.className = "summary-disclaimer";
+  disclaimer.textContent =
+    "Este resumen es solo orientativo y no reemplaza una evaluación médica.";
+  card.appendChild(disclaimer);
+
+  summaryCard = card;
+  summaryShown = true;
+  messagesContainer.appendChild(card);
+  scrollMessagesToBottom();
+}
+
 
     function scrollMessagesToBottom() {
       if (!messagesContainer) return;
@@ -2103,7 +2672,10 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
 
       const intro = document.createElement("div");
       intro.className = "clinical-question-intro";
-      intro.textContent = "Para orientarme mejor:";
+      intro.textContent = clinicalIntroShown ? "" : "Para orientarme mejor:"; // MODIFICADO
+      if (!clinicalIntroShown) { // MODIFICADO
+        clinicalIntroShown = true; // MODIFICADO
+      } // MODIFICADO
 
       const question = document.createElement("div");
       question.className = "clinical-question-text";
@@ -2397,7 +2969,89 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
       return typingDiv;
     }
 
- async function sendMessage(text) {
+function getSymptomFromHistory() { // MODIFICADO
+  const userMessages = getUserMessagesForSummary(); // MODIFICADO
+  let symptom = ""; // MODIFICADO
+  userMessages.forEach((message) => { // MODIFICADO
+    if (symptom) return; // MODIFICADO
+    symptom = extractSymptomPhrase(message); // MODIFICADO
+  }); // MODIFICADO
+  return symptom; // MODIFICADO
+} // MODIFICADO
+
+function buildOrientationMessage() { // MODIFICADO
+  const symptom = getSymptomFromHistory() || "los síntomas que describes"; // MODIFICADO
+  const duration = extractDurationPhrase(getUserMessagesForSummary()); // MODIFICADO
+  const probable = buildProbableCauses(symptom).slice(0, 2); // MODIFICADO
+  const durationText = duration ? `, ${duration}` : ""; // MODIFICADO
+  return (
+    `Con lo que me cuentas sobre ${symptom}${durationText}, es posible que sea algo frecuente como ${probable.join(" o ")}. ` +
+    "No puedo hacer un diagnóstico, pero en general se puede observar la evolución y consultar si los síntomas empeoran, " +
+    "si aparecen señales de alarma o si no mejoran en los próximos días."
+  ); // MODIFICADO
+} // MODIFICADO
+
+function buildAssistantReply() { // MODIFICADO
+  if (conversationState.conversationClosed) { // MODIFICADO
+    return "Con lo que me has contado, ya tengo una orientación bastante clara. Si aparece algo nuevo o empeora, consulta."; // MODIFICADO
+  } // MODIFICADO
+
+  if (!conversationState.symptomProvided) { // MODIFICADO
+    if (!questionHistory.symptomAsked) { // MODIFICADO
+      questionHistory.symptomAsked = true; // MODIFICADO
+      return (
+        "Gracias por contármelo. Voy a hacerte unas preguntas breves para orientarte mejor. " +
+        "¿Cuál es el síntoma principal que más te preocupa ahora?"
+      ); // MODIFICADO
+    } // MODIFICADO
+    return "Cuando quieras, puedes contarme el síntoma principal con tus palabras."; // MODIFICADO
+  } // MODIFICADO
+
+  if (!conversationState.durationProvided) { // MODIFICADO
+    if (!questionHistory.durationAsked) { // MODIFICADO
+      questionHistory.durationAsked = true; // MODIFICADO
+      return "Gracias. ¿Desde cuándo tienes ese síntoma?"; // MODIFICADO
+    } // MODIFICADO
+    return "Ese dato de tiempo me ayuda a orientar mejor el caso."; // MODIFICADO
+  } // MODIFICADO
+
+  if (!conversationState.feverProvided) { // MODIFICADO
+    if (!questionHistory.feverAsked) { // MODIFICADO
+      questionHistory.feverAsked = true; // MODIFICADO
+      return "¿Has tenido fiebre?"; // MODIFICADO
+    } // MODIFICADO
+    return "También es útil saber si hubo fiebre."; // MODIFICADO
+  } // MODIFICADO
+
+  if (!conversationState.medicationAnswered) { // MODIFICADO
+    if (!questionHistory.medicationAsked) { // MODIFICADO
+      questionHistory.medicationAsked = true; // MODIFICADO
+      return "¿Has tomado algún medicamento o remedio hasta ahora?"; // MODIFICADO
+    } // MODIFICADO
+    return "Si tomaste algún medicamento, ese detalle puede ser útil."; // MODIFICADO
+  } // MODIFICADO
+
+  if (!conversationState.orientationGiven) { // MODIFICADO
+    conversationState.orientationGiven = true; // MODIFICADO
+    if (conversationState.userHasNoMoreQuestions &&
+        conversationState.symptomProvided &&
+        conversationState.durationProvided) { // MODIFICADO
+      conversationState.conversationClosed = true; // MODIFICADO
+    } // MODIFICADO
+    return buildOrientationMessage(); // MODIFICADO
+  } // MODIFICADO
+
+  if (conversationState.userHasNoMoreQuestions &&
+      conversationState.symptomProvided &&
+      conversationState.durationProvided) { // MODIFICADO
+    conversationState.conversationClosed = true; // MODIFICADO
+    return "Con lo que me has contado, ya tengo una orientación bastante clara. Si aparece algo nuevo o empeora, consulta."; // MODIFICADO
+  } // MODIFICADO
+
+  return "Si quieres, puedo aclarar alguna duda concreta sobre lo que sientes."; // MODIFICADO
+} // MODIFICADO
+
+async function sendMessage(text) {
   if (isTyping) return;
 
   const sanitizedText = text.trim();
@@ -2406,6 +3060,7 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   removeInitialOptions();
   isTyping = true;
   appendMessage("user", sanitizedText);
+  updateConversationStateFromUser(sanitizedText); // MODIFICADO
 
   const typingIndicator = showTypingIndicator();
   if (sendButton) {
@@ -2413,25 +3068,13 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   }
 
   try {
-    const response = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        messages,
-        lang: "es",
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error("Network response was not ok");
-    }
-
-    const data = await response.json();
-
-    const reply = data?.answer || TEXT.errorMessages.fetch;
+    const reply = buildAssistantReply(); // MODIFICADO
     typingIndicator?.remove();
 
-    const messageElement = appendMessage("assistant", reply); // 🔧 cambio UX médico
+    appendMessage("assistant", reply); // 🔧 cambio UX médico
+    if (conversationState.conversationClosed) { // MODIFICADO
+      renderSummaryCard(); // MODIFICADO
+    } // MODIFICADO
 
   } catch (error) {
     typingIndicator?.remove();
