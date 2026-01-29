@@ -939,6 +939,13 @@
       line-height: 1.6;
     }
 
+    .summary-disclaimer {
+      margin-top: 18px;
+      font-size: 12px;
+      color: var(--color-muted);
+      line-height: 1.6;
+    }
+
     body[data-theme="light"] .summary-card {
       background: rgba(255, 255, 255, 0.98);
       border-color: rgba(229, 231, 235, 0.9);
@@ -2202,8 +2209,42 @@ function isRecommendationMessage(text) {
   ]);
 }
 
+function messageHasQuestion(text) {
+  return /[?¿]/.test(text || "");
+}
+
+function getLastAssistantMessage() {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role === "assistant") {
+      return message.content || "";
+    }
+  }
+  return "";
+}
+
+function getLastUserMessageText() {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role === "user") {
+      return message.content || "";
+    }
+  }
+  return "";
+}
+
+function hasOpenUserQuestion() {
+  const lastUser = getLastUserMessageText();
+  return messageHasQuestion(lastUser);
+}
+
 function shouldShowSummary(text) {
-  return pendingSummaryTrigger || isAssistantClosingMessage(text) || isRecommendationMessage(text);
+  const assistantMessage = text || "";
+  if (!assistantMessage) return false;
+  if (messageHasQuestion(assistantMessage)) return false;
+  if (hasOpenUserQuestion()) return false;
+  if (!isRecommendationMessage(assistantMessage)) return false;
+  return pendingSummaryTrigger || isAssistantClosingMessage(assistantMessage) || isRecommendationMessage(assistantMessage);
 }
 
 function clearSummaryCard() {
@@ -2230,32 +2271,176 @@ function shortenText(text, maxLength = 160) {
   return `${cleaned.slice(0, maxLength).trim()}…`;
 }
 
+function getUserMessagesForSummary() {
+  return storedMessages
+    .filter((message) => message.role === "user")
+    .map((message) => message.content)
+    .filter((content) => content && !isClosingUserMessage(content));
+}
+
+function extractAllSymptoms(text) {
+  const lower = normalizeText(text);
+  const patterns = [
+    { pattern: /dolor de garganta/, label: "dolor de garganta" },
+    { pattern: /dolor de cabeza|cefalea/, label: "dolor de cabeza" },
+    { pattern: /dolor abdominal|dolor de estomago|dolor estomacal/, label: "dolor abdominal" },
+    { pattern: /dolor en el pecho|dolor de pecho/, label: "dolor en el pecho" },
+    { pattern: /dolor de espalda/, label: "dolor de espalda" },
+    { pattern: /dolor de oido|dolor de oreja|dolor de oidos|dolor de orejas/, label: "dolor de oído" },
+    { pattern: /fiebre/, label: "fiebre" },
+    { pattern: /tos/, label: "tos" },
+    { pattern: /congestion|nariz tapada|secrecion nasal|goteo nasal/, label: "congestión nasal" },
+    { pattern: /nausea|nauseas/, label: "náuseas" },
+    { pattern: /vomito|vomitos|v[oó]mito|v[oó]mitos/, label: "vómitos" },
+    { pattern: /diarrea/, label: "diarrea" },
+    { pattern: /mareo|vertigo/, label: "mareo" },
+    { pattern: /fatiga|cansancio/, label: "cansancio" },
+    { pattern: /dificultad para respirar|falta de aire|disnea/, label: "dificultad para respirar" },
+    { pattern: /ardor al orinar|dolor al orinar/, label: "ardor al orinar" },
+    { pattern: /picazon|picor/, label: "picazón" },
+    { pattern: /erupcion|sarpullido/, label: "erupción en la piel" },
+    { pattern: /hinchazon|inflamacion/, label: "hinchazón" },
+  ];
+
+  const matches = [];
+  patterns.forEach((entry) => {
+    if (entry.pattern.test(lower)) {
+      matches.push(entry.label);
+    }
+  });
+
+  const painMatch = lower.match(/dolor (?:de|en)\s+([a-záéíóúñ\s]{2,40})/);
+  if (painMatch) {
+    const location = painMatch[1].trim().replace(/\s+/g, " ");
+    if (location) {
+      matches.push(`dolor de ${location}`);
+    }
+  }
+
+  return Array.from(new Set(matches));
+}
+
+function extractSymptomPhrase(text) {
+  const matches = extractAllSymptoms(text);
+  return matches[0] || "";
+}
+
+function extractRelevantDetails(messages) {
+  const details = [];
+  const durationPatterns = [
+    /(desde hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+    /(hace\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+    /(por\s+[a-z0-9áéíóúñ\s]+?)([.,;]|$)/i,
+  ];
+  const negationPatterns = [
+    /(sin\s+[a-záéíóúñ\s]+?)([.,;]|$)/i,
+    /(no\s+(?:tengo|he tenido|presento|hay)\s+[a-záéíóúñ\s]+?)([.,;]|$)/i,
+  ];
+
+  messages.forEach((message) => {
+    durationPatterns.forEach((pattern) => {
+      if (details.length >= 2) return;
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const detail = shortenText(match[1], 80);
+        if (!details.includes(detail)) {
+          details.push(detail);
+        }
+      }
+    });
+
+    negationPatterns.forEach((pattern) => {
+      if (details.length >= 2) return;
+      const match = message.match(pattern);
+      if (match && match[1]) {
+        const detail = shortenText(match[1], 80);
+        if (!details.includes(detail)) {
+          details.push(detail);
+        }
+      }
+    });
+  });
+
+  return details.slice(0, 2);
+}
+
+function extractOrientationText(text, keywords) {
+  const sentences = text
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  for (const sentence of sentences) {
+    const normalized = normalizeText(sentence);
+    if (keywords.some((keyword) => normalized.includes(keyword))) {
+      return sentence;
+    }
+  }
+  return "";
+}
+
 function buildSummaryContent() {
-  const baseUserMessage =
-    getLastUserMessage({ includeClosing: false }) || getLastUserMessage({ includeClosing: true });
-  const cleanedUser = baseUserMessage
-    .replace(/^(tengo|estoy|siento|me siento|me duele|presento)\s+/i, "")
-    .trim();
-  const conversationText = cleanedUser
-    ? `Conversamos sobre lo que has notado: ${shortenText(cleanedUser)}.`
-    : "Conversamos sobre lo que estás sintiendo y cómo te está afectando.";
+  const assistantMessage = getLastAssistantMessage();
+  if (!assistantMessage) return null;
+  if (messageHasQuestion(assistantMessage)) return null;
+  if (!isRecommendationMessage(assistantMessage)) return null;
+
+  const userMessages = getUserMessagesForSummary();
+  if (!userMessages.length) return null;
+
+  let symptom = "";
+  for (const message of userMessages) {
+    symptom = extractSymptomPhrase(message);
+    if (symptom) break;
+  }
+  if (!symptom) return null;
+
+  const details = extractRelevantDetails(userMessages);
+  if (details.length < 2) {
+    const secondarySymptoms = [];
+    userMessages.forEach((message) => {
+      const symptoms = extractAllSymptoms(message);
+      symptoms.forEach((item) => {
+        if (item && item !== symptom && !secondarySymptoms.includes(item)) {
+          secondarySymptoms.push(item);
+        }
+      });
+    });
+    if (secondarySymptoms.length) {
+      details.push(`acompañado de ${secondarySymptoms[0]}`);
+    }
+  }
+  if (!details.length) return null;
+
+  const detailText =
+    details.length === 1 ? details[0] : `${details[0]} y ${details[1]}`;
+  const conversationText = `Conversamos sobre ${symptom}${detailText ? `, ${detailText}` : ""}.`;
+
+  const probableText = `Por lo que describes, esto es compatible con un cuadro frecuente relacionado con ${symptom}.`;
+  const observeText = `Observa si ${symptom} cambia, se intensifica o se prolonga más de lo esperado.`;
+
+  const consultText =
+    extractOrientationText(assistantMessage, ["urgencia", "emergencia", "guardia", "consultar", "consulta", "acudir"]) ||
+    "";
+  if (!consultText) return null;
+
+  const nextStepText =
+    extractOrientationText(assistantMessage, ["observar", "observa", "vigilar", "monitorear"]) ||
+    extractOrientationText(assistantMessage, ["consultar", "consulta", "acudir"]);
+  if (!nextStepText) return null;
 
   return {
     conversation: conversationText,
-    probable:
-      "Por lo que cuentas, parece más probable que sea una molestia frecuente y pasajera, sin señales claras de alarma en este momento.",
-    observe:
-      "Observa si el malestar cambia, aumenta o se acompaña de nuevos síntomas que te llamen la atención.",
-    consult:
-      "Conviene consultar si no mejora, si interfiere con tu día a día o si aparecen señales que te preocupen. Acude a urgencia si el cuadro es repentino o intenso.",
-    nextStep:
-      "Como próximo paso, puedes observar con calma y, si lo necesitas, agendar una evaluación médica.",
+    probable: probableText,
+    observe: observeText,
+    consult: consultText,
+    nextStep: nextStepText,
   };
 }
 
 function renderSummaryCard() {
   if (!messagesContainer || summaryShown) return;
   const summary = buildSummaryContent();
+  if (!summary) return;
 
   const card = document.createElement("section");
   card.className = "summary-card";
@@ -2296,6 +2481,12 @@ function renderSummaryCard() {
     block.appendChild(paragraph);
     card.appendChild(block);
   });
+
+  const disclaimer = document.createElement("p");
+  disclaimer.className = "summary-disclaimer";
+  disclaimer.textContent =
+    "Este resumen es solo orientativo y no reemplaza una evaluación médica.";
+  card.appendChild(disclaimer);
 
   summaryCard = card;
   summaryShown = true;
@@ -2614,15 +2805,11 @@ function renderSummaryCard() {
       return typingDiv;
     }
 
- async function sendMessage(text) {
+async function sendMessage(text) {
   if (isTyping) return;
 
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
-
-  if (summaryShown) {
-    clearSummaryCard();
-  }
 
   removeInitialOptions();
   isTyping = true;
