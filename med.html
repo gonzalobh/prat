@@ -1741,6 +1741,19 @@ body {
     let summaryShown = false;
     let summaryCard = null;
     let pendingSummaryTrigger = false;
+    let pendingSummaryData = null;
+    let clinicalState = {
+      fever: null,
+      pain: null,
+      duration: null,
+      location: null,
+    };
+    let sentClinicalState = {
+      fever: null,
+      pain: null,
+      duration: null,
+      location: null,
+    };
     const conversationState = { // MODIFICADO
       symptomProvided: false, // MODIFICADO
       durationProvided: false, // MODIFICADO
@@ -1965,6 +1978,7 @@ body {
       isTyping = false;
       initialOptionsShown = true;
       rebuildConversationStateFromHistory(); // MODIFICADO
+      rebuildClinicalStateFromHistory();
       if (messagesContainer) {
         resetMessagesContainer();
         storedMessages.forEach((message) => {
@@ -1975,9 +1989,6 @@ body {
       if (sendButton) {
         sendButton.disabled = false;
       }
-      if (conversationState.conversationClosed) { // MODIFICADO
-        renderSummaryCard(); // MODIFICADO
-      } // MODIFICADO
       return true;
     }
 
@@ -2047,6 +2058,7 @@ body {
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
+      resetClinicalState();
       resetConversationState(); // MODIFICADO
       clearSummaryCard();
       if (messagesContainer) {
@@ -2095,6 +2107,7 @@ body {
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
+      resetClinicalState();
       resetConversationState(); // MODIFICADO
       clearSummaryCard();
       sendButton?.removeAttribute("disabled");
@@ -2190,6 +2203,138 @@ function hasAny(text, terms) {
   return terms.some((term) => text.includes(term));
 }
 
+function parseDurationFromText(text) {
+  const normalized = normalizeText(text);
+  const match = normalized.match(
+    /\b(\d+|un|una|dos|tres|cuatro|cinco|seis|siete|ocho|nueve|diez)\s+(minutos|minuto|horas|hora|dias|dia|semanas|semana|meses|mes|anos|ano|año)\b/
+  );
+  if (!match) return "";
+  return text.trim();
+}
+
+function getLastAssistantQuestionText() {
+  const assistantText = getLastAssistantMessage();
+  const lastQuestionIndex = assistantText.lastIndexOf("?");
+  if (lastQuestionIndex === -1) return "";
+  const questionStartIndex = assistantText.lastIndexOf("¿", lastQuestionIndex);
+  if (questionStartIndex === -1) {
+    const boundaryIndex = Math.max(
+      assistantText.lastIndexOf(".", lastQuestionIndex),
+      assistantText.lastIndexOf("\n", lastQuestionIndex),
+      assistantText.lastIndexOf("!", lastQuestionIndex),
+      assistantText.lastIndexOf(":", lastQuestionIndex)
+    );
+    return assistantText.slice(boundaryIndex + 1, lastQuestionIndex + 1).trim();
+  }
+  return assistantText.slice(questionStartIndex, lastQuestionIndex + 1).trim();
+}
+
+function updateClinicalStateFromText(text) {
+  const normalized = normalizeText(text);
+  if (clinicalState.fever === null && hasAny(normalized, ["fiebre", "temperatura"])) {
+    clinicalState.fever = !hasAny(normalized, ["sin fiebre", "no tengo fiebre", "no he tenido fiebre"]); // 🔎 actualiza clinicalState
+  }
+  if (clinicalState.pain === null && normalized.includes("dolor")) {
+    clinicalState.pain = !hasAny(normalized, ["sin dolor", "no tengo dolor", "no siento dolor"]); // 🔎 actualiza clinicalState
+  }
+  if (!clinicalState.duration) {
+    const duration = parseDurationFromText(text);
+    if (duration) {
+      clinicalState.duration = duration; // 🔎 actualiza clinicalState
+    }
+  }
+  if (!clinicalState.location) {
+    const match = normalized.match(/dolor (?:en|de)\s+([a-záéíóúñ\s]{2,40})/);
+    if (match && match[1]) {
+      clinicalState.location = match[1].trim().replace(/\s+/g, " "); // 🔎 actualiza clinicalState
+    }
+  }
+}
+
+function interpretBriefResponse(text) {
+  const normalized = normalizeText(text);
+  const wordCount = normalized.split(/\s+/).filter(Boolean).length;
+  const lastQuestion = normalizeText(getLastAssistantQuestionText());
+  let interpretedText = "";
+
+  updateClinicalStateFromText(text);
+
+  if (wordCount <= 3) {
+    if (hasAny(normalized, ["si", "sí", "claro", "ajá", "aja", "sip"])) {
+      if (lastQuestion.includes("fiebre")) {
+        clinicalState.fever = true; // 🔎 actualiza clinicalState
+        interpretedText = "Fiebre: sí.";
+      } else if (lastQuestion.includes("dolor")) {
+        clinicalState.pain = true; // 🔎 actualiza clinicalState
+        interpretedText = "Dolor: sí.";
+      }
+    }
+
+    if (!interpretedText && hasAny(normalized, ["no", "nop", "para nada"])) {
+      if (lastQuestion.includes("fiebre")) {
+        clinicalState.fever = false; // 🔎 actualiza clinicalState
+        interpretedText = "Fiebre: no.";
+      } else if (lastQuestion.includes("dolor")) {
+        clinicalState.pain = false; // 🔎 actualiza clinicalState
+        interpretedText = "Dolor: no.";
+      }
+    }
+
+    if (!interpretedText && normalized === "fiebre") {
+      clinicalState.fever = true; // 🔎 actualiza clinicalState
+      interpretedText = "Síntoma principal: fiebre.";
+    }
+
+    if (!interpretedText && normalized === "dolor") {
+      clinicalState.pain = true; // 🔎 actualiza clinicalState
+      interpretedText = "Síntoma principal: dolor.";
+    }
+
+    if (!interpretedText) {
+      const duration = parseDurationFromText(text);
+      if (duration && (lastQuestion.includes("desde") || lastQuestion.includes("cuando"))) {
+        clinicalState.duration = duration; // 🔎 actualiza clinicalState
+        interpretedText = `Duración: ${duration}.`;
+      }
+    }
+
+    if (!interpretedText && hasAny(lastQuestion, ["donde", "en que parte", "ubicacion"])) {
+      clinicalState.location = text.trim(); // 🔎 actualiza clinicalState
+      interpretedText = `Ubicación: ${text.trim()}.`;
+    }
+  }
+
+  if (interpretedText) {
+    return { apiText: interpretedText }; // 🩺 interpretación de respuestas breves
+  }
+
+  return { apiText: text };
+}
+
+function buildClinicalSystemMessage() {
+  const parts = [];
+
+  if (clinicalState.fever !== null && clinicalState.fever !== sentClinicalState.fever) {
+    parts.push(clinicalState.fever ? "fiebre presente" : "fiebre ausente");
+    sentClinicalState.fever = clinicalState.fever;
+  }
+  if (clinicalState.pain !== null && clinicalState.pain !== sentClinicalState.pain) {
+    parts.push(clinicalState.pain ? "dolor presente" : "dolor ausente");
+    sentClinicalState.pain = clinicalState.pain;
+  }
+  if (clinicalState.duration && clinicalState.duration !== sentClinicalState.duration) {
+    parts.push(`duración aproximada ${clinicalState.duration}`);
+    sentClinicalState.duration = clinicalState.duration;
+  }
+  if (clinicalState.location && clinicalState.location !== sentClinicalState.location) {
+    parts.push(`localización ${clinicalState.location}`);
+    sentClinicalState.location = clinicalState.location;
+  }
+
+  if (!parts.length) return "";
+  return `Estado clínico conocido: ${parts.join(", ")}.`;
+}
+
 function resetConversationState() { // MODIFICADO
   conversationState.symptomProvided = false; // MODIFICADO
   conversationState.durationProvided = false; // MODIFICADO
@@ -2207,6 +2352,22 @@ function resetConversationState() { // MODIFICADO
   }; // MODIFICADO
   clinicalIntroShown = false; // MODIFICADO
 } // MODIFICADO
+
+function resetClinicalState() {
+  clinicalState = {
+    fever: null,
+    pain: null,
+    duration: null,
+    location: null,
+  };
+  sentClinicalState = {
+    fever: null,
+    pain: null,
+    duration: null,
+    location: null,
+  };
+  pendingSummaryData = null;
+}
 
 function detectDuration(text) { // MODIFICADO
   const normalized = normalizeText(text); // MODIFICADO
@@ -2295,12 +2456,22 @@ function rebuildConversationStateFromHistory() { // MODIFICADO
     }); // MODIFICADO
 } // MODIFICADO
 
+function rebuildClinicalStateFromHistory() {
+  resetClinicalState();
+  storedMessages
+    .filter((message) => message.role === "user")
+    .forEach((message) => {
+      updateClinicalStateFromText(message.content || "");
+    });
+}
+
 function isClosingUserMessage(text) {
   const normalized = normalizeText(text);
   return hasAny(normalized, [
     "gracias",
     "ok",
     "okay",
+    "entiendo",
     "entendido",
     "eso era",
     "era eso",
@@ -2386,6 +2557,7 @@ function clearSummaryCard() {
     summaryCard = null;
   }
   summaryShown = false;
+  pendingSummaryData = null;
 }
 
 function getLastUserMessage({ includeClosing = false } = {}) {
@@ -2565,68 +2737,42 @@ function detectAlertSigns(messages) { // MODIFICADO
   return ""; // MODIFICADO
 } // MODIFICADO
 
-function buildSummaryContent() { // MODIFICADO
-  const userMessages = getUserMessagesForSummary(); // MODIFICADO
-  const fallbackMessages = storedMessages
-    .filter((message) => message.role === "user")
-    .map((message) => message.content); // MODIFICADO
-  const messagesForSummary = userMessages.length ? userMessages : fallbackMessages; // MODIFICADO
-  let symptom = ""; // MODIFICADO
-  for (const message of messagesForSummary) { // MODIFICADO
-    symptom = extractSymptomPhrase(message); // MODIFICADO
-    if (symptom) break; // MODIFICADO
-  } // MODIFICADO
-  if (!symptom) { // MODIFICADO
-    symptom = "síntoma principal no especificado"; // MODIFICADO
-  } // MODIFICADO
-  const duration = extractDurationPhrase(messagesForSummary); // MODIFICADO
-  const durationText = duration ? `, ${duration}` : ", duración no especificada"; // MODIFICADO
-  const motiveText = `Motivo de consulta: ${symptom}${durationText}.`; // MODIFICADO
+function extractSummaryFromAssistant(text) {
+  const marker = "RESUMEN_CLINICO:";
+  const markerIndex = text.indexOf(marker);
+  if (markerIndex === -1) {
+    return { cleanText: text, summary: null };
+  }
 
-  const probableCauses = buildProbableCauses(symptom).slice(0, 3); // MODIFICADO
-  const probableText = `Lo más probable es que se trate de ${probableCauses.join(", ")}.`; // MODIFICADO
+  const cleanText = text.slice(0, markerIndex).trimEnd();
+  const block = text.slice(markerIndex + marker.length).trim();
+  const lines = block
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
 
-  const alertText = detectAlertSigns(messagesForSummary); // MODIFICADO
+  const sections = [];
+  lines.forEach((line) => {
+    const match = line.match(/^(Resumen|Probable|Cuidados|Alerta):\s*(.+)$/i);
+    if (match) {
+      sections.push({ title: match[1], text: match[2] });
+    }
+  });
 
-  const recommendationText = alertText
-    ? "Recomendación general: consulta médica si aparecen señales de alarma o empeora el cuadro."
-    : "Recomendación general: observación en casa y consulta médica si el síntoma persiste o se intensifica."; // MODIFICADO
+  if (!sections.length) {
+    return { cleanText: cleanText || text, summary: null };
+  }
 
-  const sections = [ // MODIFICADO
-    { title: "Motivo de consulta", text: motiveText }, // MODIFICADO
-    { title: "Lo más probable", text: probableText }, // MODIFICADO
-  ]; // MODIFICADO
+  return { cleanText, summary: { sections } };
+}
 
-  if (alertText) { // MODIFICADO
-    sections.push({ title: "Señales de alerta", text: alertText }); // MODIFICADO
-  } // MODIFICADO
-
-  sections.push({ title: "Recomendación general", text: recommendationText }); // MODIFICADO
-
-  return { sections }; // MODIFICADO
-} // MODIFICADO
-
-function renderSummaryCard() { // MODIFICADO
-  if (!messagesContainer || summaryShown) return; // MODIFICADO
-  if (!conversationState.conversationClosed) return; // MODIFICADO
-  const summary = buildSummaryContent(); // MODIFICADO
+function renderSummaryCard(summary) {
+  if (!messagesContainer || summaryShown || !summary) return;
 
   const card = document.createElement("section");
   card.className = "summary-card";
-  card.setAttribute("aria-label", "Resumen final premium");
 
-  const label = document.createElement("div");
-  label.className = "summary-card-label";
-  label.textContent = "Resumen final premium";
-
-  const title = document.createElement("h3");
-  title.className = "summary-card-title";
-  title.textContent = "Resumen de la orientación";
-
-  card.appendChild(label);
-  card.appendChild(title);
-
-  summary.sections.forEach((section) => { // MODIFICADO
+  summary.sections.forEach((section) => { // 🧾 renderiza tarjeta de resumen
     const block = document.createElement("div");
     block.className = "summary-section";
 
@@ -2653,6 +2799,15 @@ function renderSummaryCard() { // MODIFICADO
   summaryShown = true;
   messagesContainer.appendChild(card);
   scrollMessagesToBottom();
+}
+
+function maybeRenderSummaryCard(assistantText = "") {
+  if (summaryShown || !pendingSummaryData) return;
+  if (pendingSummaryTrigger || !messageHasQuestion(assistantText)) {
+    renderSummaryCard(pendingSummaryData);
+    pendingSummaryData = null;
+    pendingSummaryTrigger = false;
+  }
 }
 
 
@@ -2934,17 +3089,27 @@ function renderSummaryCard() { // MODIFICADO
       return messageDiv;
     }
 
-    function recordMessage(role, content, { includeInApi = true } = {}) {
-      storedMessages.push({ role, content });
+    function recordMessage(
+      role,
+      content,
+      { includeInApi = true, includeInStorage = true } = {}
+    ) {
+      if (includeInStorage) {
+        storedMessages.push({ role, content });
+        persistStoredMessages();
+      }
       if (includeInApi) {
         messages.push({ role, content });
       }
-      persistStoredMessages();
     }
 
-    function appendMessage(role, content, { animate = true, includeInApi = true } = {}) {
+    function appendMessage(
+      role,
+      content,
+      { animate = true, includeInApi = true, includeInStorage = true } = {}
+    ) {
       const messageElement = addMessage(role, content, { animate });
-      recordMessage(role, content, { includeInApi });
+      recordMessage(role, content, { includeInApi, includeInStorage });
       return messageElement;
     }
 
@@ -3059,8 +3224,15 @@ async function sendMessage(text) {
 
   removeInitialOptions();
   isTyping = true;
-  appendMessage("user", sanitizedText);
-  updateConversationStateFromUser(sanitizedText); // MODIFICADO
+  const interpreted = interpretBriefResponse(sanitizedText); // 🩺 interpretación de respuestas breves
+  appendMessage("user", sanitizedText, { includeInApi: false });
+  recordMessage("user", interpreted.apiText, { includeInStorage: false });
+  pendingSummaryTrigger = pendingSummaryTrigger || isClosingUserMessage(sanitizedText);
+
+  const systemSummary = buildClinicalSystemMessage();
+  if (systemSummary) {
+    recordMessage("system", systemSummary, { includeInStorage: false }); // 🛰️ envía mensaje system invisible
+  }
 
   const typingIndicator = showTypingIndicator();
   if (sendButton) {
@@ -3068,14 +3240,34 @@ async function sendMessage(text) {
   }
 
   try {
-    const reply = buildAssistantReply(); // MODIFICADO
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messages,
+        lang: "es",
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error("Network response was not ok");
+    }
+
+    const data = await response.json();
+    const reply = data?.answer || TEXT.errorMessages.fetch;
+    const summaryExtraction = extractSummaryFromAssistant(reply);
+    const assistantText = summaryExtraction.cleanText.trim();
+    if (summaryExtraction.summary) {
+      pendingSummaryData = summaryExtraction.summary;
+    }
+
     typingIndicator?.remove();
-
-    appendMessage("assistant", reply); // 🔧 cambio UX médico
-    if (conversationState.conversationClosed) { // MODIFICADO
-      renderSummaryCard(); // MODIFICADO
-    } // MODIFICADO
-
+    if (assistantText) {
+      appendMessage("assistant", assistantText);
+    } else {
+      recordMessage("assistant", assistantText, { includeInStorage: false });
+    }
+    maybeRenderSummaryCard(assistantText);
   } catch (error) {
     typingIndicator?.remove();
     appendMessage("assistant", TEXT.errorMessages.network, { includeInApi: false });
