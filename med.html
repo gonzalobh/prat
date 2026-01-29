@@ -891,6 +891,60 @@
       box-shadow: 0 12px 24px rgba(31, 42, 68, 0.1); /* // 🎨 estilo clínico */
     }
 
+    .summary-card {
+      align-self: flex-start;
+      width: min(640px, 100%);
+      padding: 20px 22px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      box-shadow: 0 14px 30px rgba(31, 42, 68, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .summary-card-label {
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    .summary-card-title {
+      font-family: var(--font-display);
+      font-size: 18px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--color-ink);
+    }
+
+    .summary-section {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .summary-section-title {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--color-muted);
+    }
+
+    .summary-section-text {
+      font-size: 15px;
+      color: var(--color-ink);
+      line-height: 1.6;
+    }
+
+    body[data-theme="light"] .summary-card {
+      background: rgba(255, 255, 255, 0.98);
+      border-color: rgba(229, 231, 235, 0.9);
+      box-shadow: 0 16px 34px rgba(31, 42, 68, 0.12);
+    }
+
     .clinical-question-block {
       margin-top: 14px;
       padding-top: 10px;
@@ -1677,6 +1731,9 @@ body {
     let messages = [];
     let storedMessages = [];
     let isTyping = false;
+    let summaryShown = false;
+    let summaryCard = null;
+    let pendingSummaryTrigger = false;
 
     let messagesContainer;
     let form;
@@ -1960,6 +2017,9 @@ body {
       storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
+      summaryShown = false;
+      pendingSummaryTrigger = false;
+      clearSummaryCard();
       if (messagesContainer) {
         resetMessagesContainer();
       }
@@ -2004,6 +2064,9 @@ body {
       storedMessages = [];
       isTyping = false;
       initialOptionsShown = false;
+      summaryShown = false;
+      pendingSummaryTrigger = false;
+      clearSummaryCard();
       sendButton?.removeAttribute("disabled");
 
       showWelcome();
@@ -2085,6 +2148,160 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   // desactivado: UX médico pro // 🔧 cambio UX médico
   return; // 🔧 cambio UX médico
 } // 🔧 cambio UX médico
+
+function normalizeText(text) {
+  return (text || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function hasAny(text, terms) {
+  return terms.some((term) => text.includes(term));
+}
+
+function isClosingUserMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "gracias",
+    "ok",
+    "okay",
+    "entendido",
+    "eso era",
+    "era eso",
+    "listo",
+    "perfecto",
+    "vale",
+  ]);
+}
+
+function isAssistantClosingMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "orientacion esta clara",
+    "orientacion queda clara",
+    "con esto queda claro",
+    "con esta informacion es suficiente",
+    "es suficiente por ahora",
+  ]);
+}
+
+function isRecommendationMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "consultar",
+    "consulta",
+    "acudir",
+    "urgencia",
+    "emergencia",
+    "guardia",
+    "observar",
+    "observa",
+    "vigilar",
+    "monitorear",
+  ]);
+}
+
+function shouldShowSummary(text) {
+  return pendingSummaryTrigger || isAssistantClosingMessage(text) || isRecommendationMessage(text);
+}
+
+function clearSummaryCard() {
+  if (summaryCard) {
+    summaryCard.remove();
+    summaryCard = null;
+  }
+  summaryShown = false;
+}
+
+function getLastUserMessage({ includeClosing = false } = {}) {
+  for (let i = storedMessages.length - 1; i >= 0; i -= 1) {
+    const message = storedMessages[i];
+    if (message.role !== "user") continue;
+    if (!includeClosing && isClosingUserMessage(message.content)) continue;
+    return message.content;
+  }
+  return "";
+}
+
+function shortenText(text, maxLength = 160) {
+  const cleaned = text.replace(/\s+/g, " ").trim();
+  if (cleaned.length <= maxLength) return cleaned;
+  return `${cleaned.slice(0, maxLength).trim()}…`;
+}
+
+function buildSummaryContent() {
+  const baseUserMessage =
+    getLastUserMessage({ includeClosing: false }) || getLastUserMessage({ includeClosing: true });
+  const cleanedUser = baseUserMessage
+    .replace(/^(tengo|estoy|siento|me siento|me duele|presento)\s+/i, "")
+    .trim();
+  const conversationText = cleanedUser
+    ? `Conversamos sobre lo que has notado: ${shortenText(cleanedUser)}.`
+    : "Conversamos sobre lo que estás sintiendo y cómo te está afectando.";
+
+  return {
+    conversation: conversationText,
+    probable:
+      "Por lo que cuentas, parece más probable que sea una molestia frecuente y pasajera, sin señales claras de alarma en este momento.",
+    observe:
+      "Observa si el malestar cambia, aumenta o se acompaña de nuevos síntomas que te llamen la atención.",
+    consult:
+      "Conviene consultar si no mejora, si interfiere con tu día a día o si aparecen señales que te preocupen. Acude a urgencia si el cuadro es repentino o intenso.",
+    nextStep:
+      "Como próximo paso, puedes observar con calma y, si lo necesitas, agendar una evaluación médica.",
+  };
+}
+
+function renderSummaryCard() {
+  if (!messagesContainer || summaryShown) return;
+  const summary = buildSummaryContent();
+
+  const card = document.createElement("section");
+  card.className = "summary-card";
+  card.setAttribute("aria-label", "Resumen final premium");
+
+  const label = document.createElement("div");
+  label.className = "summary-card-label";
+  label.textContent = "Resumen final premium";
+
+  const title = document.createElement("h3");
+  title.className = "summary-card-title";
+  title.textContent = "Resumen de la orientación";
+
+  const sections = [
+    { title: "Qué se conversó", text: summary.conversation },
+    { title: "Qué parece más probable", text: summary.probable },
+    { title: "Qué observar ahora", text: summary.observe },
+    { title: "Cuándo consultar", text: summary.consult },
+    { title: "Próximo paso recomendado", text: summary.nextStep },
+  ];
+
+  card.appendChild(label);
+  card.appendChild(title);
+
+  sections.forEach((section) => {
+    const block = document.createElement("div");
+    block.className = "summary-section";
+
+    const heading = document.createElement("div");
+    heading.className = "summary-section-title";
+    heading.textContent = section.title;
+
+    const paragraph = document.createElement("p");
+    paragraph.className = "summary-section-text";
+    paragraph.textContent = section.text;
+
+    block.appendChild(heading);
+    block.appendChild(paragraph);
+    card.appendChild(block);
+  });
+
+  summaryCard = card;
+  summaryShown = true;
+  messagesContainer.appendChild(card);
+  scrollMessagesToBottom();
+}
 
 
     function scrollMessagesToBottom() {
@@ -2403,8 +2620,13 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
   const sanitizedText = text.trim();
   if (!sanitizedText) return;
 
+  if (summaryShown) {
+    clearSummaryCard();
+  }
+
   removeInitialOptions();
   isTyping = true;
+  pendingSummaryTrigger = isClosingUserMessage(sanitizedText);
   appendMessage("user", sanitizedText);
 
   const typingIndicator = showTypingIndicator();
@@ -2432,6 +2654,10 @@ function renderSuggestedQuestions(messageElement, suggestions) { // 🔧 cambio 
     typingIndicator?.remove();
 
     const messageElement = appendMessage("assistant", reply); // 🔧 cambio UX médico
+    if (shouldShowSummary(reply)) {
+      renderSummaryCard();
+      pendingSummaryTrigger = false;
+    }
 
   } catch (error) {
     typingIndicator?.remove();
