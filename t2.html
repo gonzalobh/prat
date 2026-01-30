@@ -227,30 +227,8 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-function hasValidOptions(answer) {
-  const option1Regex = /opci[oó]n\s*1\s*:/i;
-  const option2Regex = /opci[oó]n\s*2\s*:/i;
-  const option3Regex = /opci[oó]n\s*3\s*:/i;
-  const optionSequenceRegex = /opci[oó]n\s*[123]\s*:/gi;
-
-  const index1 = answer.search(option1Regex);
-  const index2 = answer.search(option2Regex);
-  const index3 = answer.search(option3Regex);
-
-  if (index1 === -1 || index2 === -1 || index3 === -1) {
-    return false;
-  }
-
-  if (!(index1 < index2 && index2 < index3)) {
-    return false;
-  }
-
-  const matches = answer.match(optionSequenceRegex) || [];
-  return matches.length >= 3;
-}
-
 function splitOptions(answer) {
-  const optionRegex = /opci[oó]n\s*[123]\s*:/gi;
+  const optionRegex = /opci[oó]n\s*([123])\s*:?\s*/gi;
   const matches = [...answer.matchAll(optionRegex)];
 
   if (matches.length < 3) {
@@ -258,8 +236,13 @@ function splitOptions(answer) {
   }
 
   const firstThree = matches.slice(0, 3);
+  const optionNumbers = firstThree.map(match => match[1]);
+  if (optionNumbers.join("") !== "123") {
+    return [];
+  }
+
   return firstThree.map((match, index) => {
-    const start = match.index;
+    const start = match.index + match[0].length;
     const end = index < firstThree.length - 1 ? firstThree[index + 1].index : answer.length;
     return answer.slice(start, end).trim();
   });
@@ -316,12 +299,12 @@ function splitOptions(answer) {
         return;
       }
 
-      if (!hasValidOptions(data.answer)) {
+      const options = splitOptions(data.answer);
+      if (options.length !== 3) {
         addMessage("assistant", "No pude generar respuestas claras. Intenta nuevamente.");
         return;
       }
 
-      const options = splitOptions(data.answer);
       addAssistantOptions(options);
       messages.push({ role: "assistant", content: data.answer });
       saveChat();
