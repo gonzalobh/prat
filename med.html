@@ -2213,6 +2213,15 @@ function hasAny(text, terms) {
   return terms.some((term) => text.includes(term));
 }
 
+function isIntentOnlyMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "tengo un sintoma",
+    "quiero orientacion medica",
+    "tengo una molestia",
+  ]);
+}
+
 function parseDurationFromText(text) {
   const normalized = normalizeText(text);
   const match = normalized.match(
@@ -2275,6 +2284,24 @@ function extractLocationFromText(text) {
   return "";
 }
 
+function hasPainOrLocationRelevant() {
+  const symptom = normalizeText(getSymptomFromHistory());
+  const userMessages = getUserMessagesForSummary().join(" ");
+  const normalized = normalizeText(`${symptom} ${userMessages}`);
+  return hasAny(normalized, [
+    "dolor",
+    "abdomen",
+    "abdominal",
+    "estomago",
+    "costado",
+    "ingle",
+    "pecho",
+    "barriga",
+    "cintura",
+    "espalda",
+  ]);
+}
+
 function updateClinicalStateFromText(text) {
   const normalized = normalizeText(text);
   if (clinicalState.fever === null && hasAny(normalized, ["fiebre", "temperatura"])) {
@@ -2332,32 +2359,32 @@ function hasAskedKeyQuestion() {
 }
 
 function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
-  if (clinicalState.duration === null) {
-    if (!questionHistory.durationAsked) {
-      questionHistory.durationAsked = true;
-      return "¿Desde cuándo exactamente tienes este síntoma?";
+  if (!conversationState.symptomProvided) {
+    if (!questionHistory.symptomAsked) {
+      questionHistory.symptomAsked = true;
+      return "¿Qué síntoma o molestia es lo principal hoy? (por ejemplo: dolor, fiebre, tos, diarrea, mareos)";
     }
+    return null;
   }
 
-  if (clinicalState.location === null) {
-    if (!questionHistory.locationAsked) {
-      questionHistory.locationAsked = true;
-      return "¿Dónde sientes la molestia o el dolor?";
-    }
+  if (clinicalState.duration === null && !questionHistory.durationAsked) {
+    questionHistory.durationAsked = true;
+    return "¿Desde cuándo empezó (o desde cuándo lo notas)?";
   }
 
-  if (clinicalState.fever === null) {
-    if (!questionHistory.feverAsked) {
-      questionHistory.feverAsked = true;
-      return "¿Has tenido fiebre?";
-    }
+  if (hasPainOrLocationRelevant() && clinicalState.location === null && !questionHistory.locationAsked) {
+    questionHistory.locationAsked = true;
+    return "¿En qué parte lo sientes exactamente? (por ejemplo: lado derecho/izquierdo, arriba/abajo)";
   }
 
-  if (clinicalState.pain === null && !hasDiarrheaMentioned()) {
-    if (!questionHistory.abdominalPainAsked) {
-      questionHistory.abdominalPainAsked = true;
-      return "¿Tienes dolor abdominal?";
-    }
+  if (clinicalState.fever === null && !questionHistory.feverAsked) {
+    questionHistory.feverAsked = true;
+    return "¿Has tenido fiebre?";
+  }
+
+  if (clinicalState.pain === null && !hasDiarrheaMentioned() && !questionHistory.abdominalPainAsked) {
+    questionHistory.abdominalPainAsked = true;
+    return "¿Tienes dolor abdominal?";
   }
 
   if (requireKeyQuestion && !questionHistory.abdominalPainAsked) {
@@ -2368,11 +2395,6 @@ function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
   if (requireKeyQuestion && !questionHistory.fluidsAsked) {
     questionHistory.fluidsAsked = true;
     return "¿Has podido tolerar líquidos?";
-  }
-
-  if (requireKeyQuestion && !questionHistory.durationAsked) {
-    questionHistory.durationAsked = true;
-    return "¿Desde cuándo exactamente tienes este síntoma?";
   }
 
   return null;
@@ -2386,13 +2408,22 @@ function interpretBriefResponse(text) {
 
   updateClinicalStateFromText(text);
 
-  const locationQuestion = hasAny(lastQuestion, ["donde sientes", "donde es", "ubicacion", "ubicación"]);
+  const locationQuestion = hasAny(lastQuestion, ["donde sientes", "donde es", "en que parte", "ubicacion", "ubicación"]);
+  const symptomQuestion = hasAny(lastQuestion, ["sintoma", "sintoma principal", "molestia"]);
 
-  if (!clinicalState.location && locationQuestion && hasAny(normalized, ["en", "lado", "abdomen", "estomago", "estómago", "costado", "ingle"])) {
+  if (locationQuestion) {
     const location = extractLocationFromText(text) || cleanLocationCandidate(text);
     if (location) {
       clinicalState.location = location; // 🔎 actualiza clinicalState
       interpretedText = `Ubicación: ${location}.`;
+    }
+  }
+
+  if (!interpretedText && symptomQuestion) {
+    const hasEnoughWords = wordCount >= 2;
+    if (hasEnoughWords && !hasAny(normalized, ["ok", "vale", "si", "sí", "no"])) {
+      conversationState.symptomProvided = true; // 🔎 actualiza conversationState
+      interpretedText = `Síntoma principal: ${text.trim()}.`;
     }
   }
 
@@ -3304,6 +3335,14 @@ function maybeRenderSummaryCard(assistantText = "") {
       return appendMessage("assistant", content, { includeInApi: false, ...options });
     }
 
+    function addAssistantMessageUnique(content, options = {}) {
+      const lastAssistant = getLastAssistantMessage();
+      const normalizedLast = normalizeText(lastAssistant);
+      const normalizedNext = normalizeText(content);
+      if (normalizedLast && normalizedLast === normalizedNext) return null;
+      return addAssistantMessage(content, options);
+    }
+
     function recordMessage(
       role,
       content,
@@ -3439,12 +3478,6 @@ async function sendMessage(text) {
 
   removeInitialOptions();
   isTyping = true;
-  const interpreted = interpretBriefResponse(sanitizedText); // 🩺 interpretación de respuestas breves
-  appendMessage("user", sanitizedText, { includeInApi: false });
-  recordMessage("user", interpreted.apiText, { includeInStorage: false });
-  const isClosing = isClosingUserMessage(sanitizedText);
-  pendingSummaryTrigger = pendingSummaryTrigger || isClosing;
-
   const finalizeLocalResponse = () => {
     isTyping = false;
     if (sendButton) {
@@ -3455,6 +3488,22 @@ async function sendMessage(text) {
       input.focus();
     }
   };
+
+  if (phase === "apertura" && isIntentOnlyMessage(sanitizedText)) {
+    appendMessage("user", sanitizedText, { includeInApi: false, includeInStorage: false });
+    phase = "entrevista";
+    addAssistantMessageUnique(
+      "Perfecto. ¿Qué síntoma o molestia es lo principal hoy? (por ejemplo: dolor, fiebre, tos, diarrea, mareos)"
+    );
+    finalizeLocalResponse();
+    return;
+  }
+
+  const interpreted = interpretBriefResponse(sanitizedText); // 🩺 interpretación de respuestas breves
+  appendMessage("user", sanitizedText, { includeInApi: false });
+  recordMessage("user", interpreted.apiText, { includeInStorage: false });
+  const isClosing = isClosingUserMessage(sanitizedText);
+  pendingSummaryTrigger = pendingSummaryTrigger || isClosing;
 
   const systemSummary = buildClinicalSystemMessage();
   if (systemSummary) {
@@ -3473,7 +3522,7 @@ async function sendMessage(text) {
     if (requiresInterview) {
       const question = nextClinicalQuestion({ requireKeyQuestion: !keyQuestionAsked || earlyInterview });
       const fallbackQuestion = "¿Hay algún otro síntoma importante que deba saber?";
-      addAssistantMessage(question || fallbackQuestion);
+      addAssistantMessageUnique(question || fallbackQuestion);
       finalizeLocalResponse();
       return;
     }
@@ -3487,7 +3536,7 @@ async function sendMessage(text) {
 
   if (phase === "cierre") {
     if (!summaryShown) {
-      addAssistantMessage("Gracias, aquí tienes el resumen clínico.");
+      addAssistantMessageUnique("Gracias, aquí tienes el resumen clínico.");
       pendingSummaryData = buildLocalSummaryData();
       renderSummaryCard(pendingSummaryData);
       pendingSummaryData = null;
