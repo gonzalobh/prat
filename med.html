@@ -2411,7 +2411,6 @@ function detectNoMoreQuestions(text) { // MODIFICADO
     "no tengo mas dudas", // MODIFICADO
     "nada mas", // MODIFICADO
     "eso es todo", // MODIFICADO
-    "no", // MODIFICADO
     "ninguna otra", // MODIFICADO
     "no necesito mas", // MODIFICADO
     "no gracias", // MODIFICADO
@@ -2751,19 +2750,58 @@ function extractSummaryFromAssistant(text) {
     .map((line) => line.trim())
     .filter(Boolean);
 
-  const sections = [];
+  const summary = {
+    resumen: "",
+    probable: "",
+    cuidados: "",
+    alerta: "",
+  };
+
   lines.forEach((line) => {
     const match = line.match(/^(Resumen|Probable|Cuidados|Alerta):\s*(.+)$/i);
     if (match) {
-      sections.push({ title: match[1], text: match[2] });
+      const key = normalizeText(match[1]);
+      summary[key] = match[2];
     }
   });
 
-  if (!sections.length) {
+  if (!summary.resumen || !summary.probable || !summary.cuidados || !summary.alerta) {
     return { cleanText: cleanText || text, summary: null };
   }
 
-  return { cleanText, summary: { sections } };
+  return { cleanText, summary };
+}
+
+function buildLocalSummaryData() {
+  const userMessages = getUserMessagesForSummary();
+  const symptom = getSymptomFromHistory();
+  const duration = extractDurationPhrase(userMessages);
+  const lastMessage = userMessages[userMessages.length - 1] || "";
+  const resumenParts = [];
+
+  if (symptom) {
+    resumenParts.push(`Síntoma principal: ${symptom}.`);
+  } else if (lastMessage) {
+    resumenParts.push(shortenText(lastMessage, 100));
+  } else {
+    resumenParts.push("Síntomas referidos recientemente.");
+  }
+
+  if (duration) {
+    resumenParts.push(`Duración: ${duration}.`);
+  }
+
+  const probable = symptom
+    ? buildProbableCauses(symptom)[0]
+    : "posible causa digestiva / inflamatoria según lo descrito";
+
+  return {
+    resumen: resumenParts.join(" "),
+    probable,
+    cuidados: "hidratación, reposo, observar evolución",
+    alerta:
+      "dolor intenso, fiebre persistente, vómitos repetidos, decaimiento marcado, sangre, dificultad para respirar",
+  };
 }
 
 function renderSummaryCard(summary) {
@@ -2772,7 +2810,14 @@ function renderSummaryCard(summary) {
   const card = document.createElement("section");
   card.className = "summary-card";
 
-  summary.sections.forEach((section) => { // 🧾 renderiza tarjeta de resumen
+  const sections = [
+    { title: "Resumen", text: summary.resumen },
+    { title: "Probable", text: summary.probable },
+    { title: "Cuidados", text: summary.cuidados },
+    { title: "Alerta", text: summary.alerta },
+  ];
+
+  sections.forEach((section) => { // 🧾 renderiza tarjeta de resumen
     const block = document.createElement("div");
     block.className = "summary-section";
 
@@ -3227,11 +3272,29 @@ async function sendMessage(text) {
   const interpreted = interpretBriefResponse(sanitizedText); // 🩺 interpretación de respuestas breves
   appendMessage("user", sanitizedText, { includeInApi: false });
   recordMessage("user", interpreted.apiText, { includeInStorage: false });
-  pendingSummaryTrigger = pendingSummaryTrigger || isClosingUserMessage(sanitizedText);
+  const isClosing = isClosingUserMessage(sanitizedText);
+  pendingSummaryTrigger = pendingSummaryTrigger || isClosing;
 
   const systemSummary = buildClinicalSystemMessage();
   if (systemSummary) {
     recordMessage("system", systemSummary, { includeInStorage: false }); // 🛰️ envía mensaje system invisible
+  }
+
+  if (isClosing && summaryShown) {
+    appendMessage(
+      "assistant",
+      "Perfecto. Si aparece algo nuevo o empeora, consulta.",
+      { includeInApi: false }
+    );
+    isTyping = false;
+    if (sendButton) {
+      sendButton.disabled = false;
+    }
+    if (input) {
+      input.placeholder = TEXT.placeholder;
+      input.focus();
+    }
+    return;
   }
 
   const typingIndicator = showTypingIndicator();
@@ -3266,6 +3329,9 @@ async function sendMessage(text) {
       appendMessage("assistant", assistantText);
     } else {
       recordMessage("assistant", assistantText, { includeInStorage: false });
+    }
+    if (!summaryExtraction.summary && isClosing && !summaryShown) {
+      pendingSummaryData = buildLocalSummaryData();
     }
     maybeRenderSummaryCard(assistantText);
   } catch (error) {
