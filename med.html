@@ -3122,8 +3122,24 @@ function isAssistantClosingMessage(text) {
   ]);
 }
 
+function isSummaryOfferMessage(text) {
+  const normalized = normalizeText(text);
+  return hasAny(normalized, [
+    "te ofrezco un resumen",
+    "te ofrezco un resumen a continuacion",
+    "aqui tienes un resumen",
+    "a continuacion te dejo un resumen",
+    "resumen clinico",
+    "resumen clínico",
+    "resumen y proximos pasos",
+    "resumen y próximos pasos",
+  ]);
+}
+
 function messageHasQuestion(text) {
-  return /[?¿]/.test(text || "");
+  if (!text) return false;
+  const t = String(text).trim();
+  return /[¿?]\s*$/.test(t) || /\?\s*$/.test(t);
 }
 
 function getLastAssistantMessage() {
@@ -3155,11 +3171,13 @@ function shouldShowCloseChoice(assistantText = "") {
   const lastUser = getLastUserMessageText();
   const assistantMessage = assistantText || getLastAssistantMessage();
   if (!assistantMessage && !lastUser) return false;
-  if (hasOpenUserQuestion()) return false;
+  if (typeof hasOpenUserQuestion === "function" && hasOpenUserQuestion()) return false;
+  if (typeof messageHasQuestion === "function" && messageHasQuestion(assistantMessage)) return false;
   return (
     isClosingUserMessage(lastUser) ||
     conversationState.conversationClosed ||
-    isAssistantClosingMessage(assistantMessage)
+    isAssistantClosingMessage(assistantMessage) ||
+    isSummaryOfferMessage(assistantMessage)
   );
 }
 
