@@ -51,6 +51,10 @@
       align-self: flex-start;
     }
 
+    .option-block + .option-block {
+      margin-top: 12px;
+    }
+
     .user {
       background: #dbeafe;
       align-self: flex-end;
@@ -108,6 +112,11 @@
       color: #fff;
       cursor: pointer;
       font-size: 15px;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
     }
 
     .menu-wrapper {
@@ -186,9 +195,11 @@
   const resetBtn = document.getElementById("resetBtn");
   const contextSelector = document.getElementById("contextSelector");
   const contextButtons = contextSelector.querySelectorAll(".context-button");
+  const submitButton = form.querySelector("button[type='submit']");
 
   let messages = [];
   let currentContext = "General";
+  let isLoading = false;
 
   const WELCOME =
     "Pega aquí el mensaje que acabas de recibir.\n" +
@@ -201,6 +212,45 @@
     div.textContent = text;
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addAssistantOptions(options) {
+    const div = document.createElement("div");
+    div.className = "message assistant";
+    options.forEach((option, index) => {
+      const optionDiv = document.createElement("div");
+      optionDiv.className = "option-block";
+      optionDiv.textContent = option.trim();
+      div.appendChild(optionDiv);
+    });
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function hasValidOptions(answer) {
+    const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
+    const counts = labels.map(label => answer.split(label).length - 1);
+    const indices = labels.map(label => answer.indexOf(label));
+    return counts.every(count => count === 1) &&
+      indices.every(index => index !== -1) &&
+      indices[0] < indices[1] &&
+      indices[1] < indices[2];
+  }
+
+  function splitOptions(answer) {
+    const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
+    const indices = labels.map(label => answer.indexOf(label));
+    return labels.map((label, index) => {
+      const start = indices[index];
+      const end = index < indices.length - 1 ? indices[index + 1] : answer.length;
+      return answer.slice(start, end).trim();
+    });
+  }
+
+  function setLoading(state) {
+    isLoading = state;
+    submitButton.disabled = state;
+    submitButton.textContent = state ? "Generando…" : "Generar respuestas";
   }
 
   function loadChat() {
@@ -233,20 +283,39 @@
     addMessage("user", text);
     saveChat();
 
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages })
-    });
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages })
+      });
 
-    const data = await res.json();
-    addMessage("assistant", data.answer);
-    messages.push({ role: "assistant", content: data.answer });
-    saveChat();
+      const data = await res.json();
+      if (!data || typeof data.answer !== "string") {
+        addMessage("assistant", "Hubo un problema al generar las respuestas. Intenta nuevamente.");
+        return;
+      }
+
+      if (!hasValidOptions(data.answer)) {
+        addMessage("assistant", "No pude generar respuestas claras. Intenta nuevamente.");
+        return;
+      }
+
+      const options = splitOptions(data.answer);
+      addAssistantOptions(options);
+      messages.push({ role: "assistant", content: data.answer });
+      saveChat();
+    } catch (error) {
+      addMessage("assistant", "Hubo un problema al generar las respuestas. Intenta nuevamente.");
+    } finally {
+      setLoading(false);
+    }
   }
 
   form.addEventListener("submit", e => {
     e.preventDefault();
+    if (isLoading) return;
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
