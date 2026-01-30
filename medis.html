@@ -1,0 +1,585 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Orientación médica</title>
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#0f1830;
+      --panel2:#0c1428;
+      --text:#e9eefc;
+      --muted:#a8b3d6;
+      --line:rgba(255,255,255,.10);
+      --accent:#7aa2ff;
+      --good:#56d364;
+      --warn:#f5c542;
+      --bad:#ff6b6b;
+      --shadow: 0 20px 60px rgba(0,0,0,.35);
+      --radius:18px;
+      --radius2:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: var(--sans);
+      color:var(--text);
+      background: radial-gradient(1200px 800px at 20% 10%, rgba(122,162,255,.16), transparent 55%),
+                  radial-gradient(900px 600px at 80% 20%, rgba(86,211,100,.10), transparent 55%),
+                  radial-gradient(900px 600px at 50% 100%, rgba(245,197,66,.08), transparent 60%),
+                  var(--bg);
+      min-height:100vh;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:24px;
+    }
+    .app{
+      width:min(980px, 100%);
+      background: linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+      border:1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow:hidden;
+    }
+    header{
+      padding:18px 18px 14px 18px;
+      background: linear-gradient(180deg, rgba(255,255,255,.05), transparent);
+      border-bottom:1px solid var(--line);
+      display:flex;
+      align-items:center;
+      gap:14px;
+      justify-content:space-between;
+    }
+    .title{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+    .title h1{
+      font-size:16px;
+      margin:0;
+      letter-spacing:.2px;
+    }
+    .title p{
+      margin:0;
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.3;
+    }
+    .actions{
+      display:flex;
+      gap:10px;
+      align-items:center;
+    }
+    .btn{
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.04);
+      color:var(--text);
+      padding:10px 12px;
+      border-radius: 12px;
+      font-size:13px;
+      cursor:pointer;
+      transition: transform .08s ease, background .15s ease, border-color .15s ease;
+      user-select:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+    }
+    .btn:hover{ background: rgba(255,255,255,.06); border-color: rgba(255,255,255,.18); }
+    .btn:active{ transform: scale(.98); }
+    .btn.primary{
+      background: rgba(122,162,255,.16);
+      border-color: rgba(122,162,255,.35);
+    }
+    .btn.primary:hover{
+      background: rgba(122,162,255,.22);
+      border-color: rgba(122,162,255,.45);
+    }
+    .btn.danger{
+      background: rgba(255,107,107,.12);
+      border-color: rgba(255,107,107,.28);
+    }
+
+    .grid{
+      display:grid;
+      grid-template-columns: 1fr 320px;
+      min-height: 640px;
+    }
+    @media (max-width: 920px){
+      .grid{ grid-template-columns: 1fr; }
+      .side{ order:2; border-left:none; border-top:1px solid var(--line); }
+    }
+
+    .chat{
+      display:flex;
+      flex-direction:column;
+      background: linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+    }
+    .messages{
+      padding:18px;
+      overflow:auto;
+      flex:1;
+      scroll-behavior:smooth;
+    }
+
+    .row{
+      display:flex;
+      margin:12px 0;
+      gap:10px;
+      align-items:flex-start;
+    }
+    .row.user{ justify-content:flex-end; }
+    .bubble{
+      max-width: 78%;
+      border:1px solid var(--line);
+      border-radius: 16px;
+      padding:12px 12px;
+      line-height:1.45;
+      font-size:14px;
+      background: rgba(255,255,255,.03);
+      white-space:pre-wrap;
+    }
+    .row.user .bubble{
+      background: rgba(122,162,255,.14);
+      border-color: rgba(122,162,255,.25);
+    }
+    .meta{
+      font-size:11px;
+      color: rgba(233,238,252,.65);
+      margin-top:6px;
+    }
+
+    .composer{
+      padding:14px;
+      border-top:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(0,0,0,.10), rgba(0,0,0,.00));
+      display:flex;
+      gap:10px;
+      align-items:flex-end;
+    }
+    textarea{
+      flex:1;
+      resize:none;
+      border-radius: 14px;
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.18);
+      color:var(--text);
+      padding:12px 12px;
+      font-family: var(--sans);
+      font-size:14px;
+      outline:none;
+      min-height:44px;
+      max-height:140px;
+      line-height:1.35;
+    }
+    textarea:focus{
+      border-color: rgba(122,162,255,.45);
+      box-shadow: 0 0 0 3px rgba(122,162,255,.12);
+    }
+
+    .side{
+      border-left:1px solid var(--line);
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      padding:16px;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+    .card{
+      border:1px solid var(--line);
+      background: rgba(0,0,0,.14);
+      border-radius: var(--radius2);
+      padding:12px;
+    }
+    .card h3{
+      margin:0 0 8px 0;
+      font-size:13px;
+      letter-spacing:.2px;
+    }
+    .card p{
+      margin:0;
+      color:var(--muted);
+      font-size:12px;
+      line-height:1.45;
+    }
+    .pill{
+      display:inline-flex;
+      align-items:center;
+      gap:6px;
+      font-size:12px;
+      padding:8px 10px;
+      border-radius: 999px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.03);
+      color: var(--muted);
+    }
+    .summary{
+      margin-top:10px;
+      display:none;
+    }
+    .summary.visible{ display:block; }
+    .k{
+      font-family: var(--mono);
+      font-size:12px;
+      color: rgba(233,238,252,.70);
+      background: rgba(255,255,255,.05);
+      padding:2px 6px;
+      border-radius: 8px;
+      border:1px solid var(--line);
+    }
+    .list{
+      margin:8px 0 0 0;
+      padding-left:18px;
+      color: var(--muted);
+      font-size:12px;
+      line-height:1.5;
+    }
+    .typing{
+      display:none;
+      font-size:12px;
+      color: var(--muted);
+      padding: 0 18px 12px 18px;
+    }
+    .typing.visible{ display:block; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="title">
+        <h1>Orientación médica</h1>
+        <p>Asistente de orientación (no reemplaza una consulta). Si hay urgencia, busca atención inmediata.</p>
+      </div>
+      <div class="actions">
+        <button class="btn" id="btnReset" title="Reiniciar chat">⋯ <span style="opacity:.85">Reiniciar</span></button>
+        <button class="btn primary" id="btnSummary" title="Generar resumen final">✓ <span>Resumen final</span></button>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="chat">
+        <div class="messages" id="messages"></div>
+        <div class="typing" id="typing">Escribiendo…</div>
+        <div class="composer">
+          <textarea id="input" placeholder="Escribe aquí… (Enter para enviar, Shift+Enter para salto de línea)"></textarea>
+          <button class="btn primary" id="btnSend">Enviar</button>
+        </div>
+      </section>
+
+      <aside class="side">
+        <div class="card">
+          <h3>Cómo usar</h3>
+          <p>
+            Describe lo que te pasa con tus palabras. Ideal: <span class="k">desde cuándo</span>, <span class="k">intensidad</span>, <span class="k">síntomas</span>.
+          </p>
+          <ul class="list">
+            <li>No entregamos diagnósticos definitivos.</li>
+            <li>No damos dosis de medicamentos.</li>
+            <li>Si eres menor, intenta estar con un adulto.</li>
+          </ul>
+        </div>
+
+        <div class="card">
+          <h3>Señales de alarma</h3>
+          <p>Si aparece cualquiera de estas, considera urgencia:</p>
+          <ul class="list">
+            <li>Dolor de pecho intenso, falta de aire marcada, desmayo.</li>
+            <li>Déficit neurológico (debilidad, habla rara, confusión).</li>
+            <li>Sangrado importante, fiebre alta con decaimiento extremo.</li>
+            <li>Empeoramiento rápido o “esto se siente peligroso”.</li>
+          </ul>
+        </div>
+
+        <div class="card summary" id="summaryCard">
+          <h3>Resumen final</h3>
+          <div id="summaryContent"></div>
+        </div>
+
+        <div class="pill">Privacidad: la conversación queda en este navegador (local).</div>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    // =========================
+    // Estado + Persistencia
+    // =========================
+    const LS_KEY = "medchat_v2_messages";
+    const messagesEl = document.getElementById("messages");
+    const inputEl = document.getElementById("input");
+    const typingEl = document.getElementById("typing");
+    const summaryCard = document.getElementById("summaryCard");
+    const summaryContent = document.getElementById("summaryContent");
+
+    /** @type {{role:"user"|"assistant", content:string, ts:number}[]} */
+    let state = loadState();
+
+    function nowTs(){ return Date.now(); }
+
+    function loadState(){
+      try{
+        const raw = localStorage.getItem(LS_KEY);
+        if(!raw) return [];
+        const parsed = JSON.parse(raw);
+        if(!Array.isArray(parsed)) return [];
+        return parsed.filter(x => x && (x.role==="user"||x.role==="assistant") && typeof x.content==="string");
+      }catch(e){
+        return [];
+      }
+    }
+    function saveState(){
+      localStorage.setItem(LS_KEY, JSON.stringify(state));
+    }
+
+    function escapeHtml(s){
+      return s.replace(/[&<>"']/g, (c) => ({
+        "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;"
+      }[c]));
+    }
+
+    // Markdown súper simple: negrita **x** y saltos de línea
+    function renderTextToHtml(text){
+      const safe = escapeHtml(text);
+      const bolded = safe.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+      return bolded.replace(/\n/g, "<br>");
+    }
+
+    function addMessage(role, content){
+      state.push({ role, content, ts: nowTs() });
+      saveState();
+      render();
+    }
+
+    function formatTime(ts){
+      try{
+        const d = new Date(ts);
+        return d.toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+      }catch(e){
+        return "";
+      }
+    }
+
+    function render(){
+      messagesEl.innerHTML = "";
+      for(const m of state){
+        const row = document.createElement("div");
+        row.className = "row " + (m.role === "user" ? "user" : "assistant");
+
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.innerHTML = renderTextToHtml(m.content);
+
+        const meta = document.createElement("div");
+        meta.className = "meta";
+        meta.textContent = (m.role === "user" ? "Tú" : "Asistente") + " · " + formatTime(m.ts || nowTs());
+
+        const wrap = document.createElement("div");
+        wrap.style.display = "flex";
+        wrap.style.flexDirection = "column";
+        wrap.style.alignItems = (m.role === "user" ? "flex-end" : "flex-start");
+
+        wrap.appendChild(bubble);
+        wrap.appendChild(meta);
+        row.appendChild(wrap);
+
+        messagesEl.appendChild(row);
+      }
+      // autoscroll
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function setTyping(on){
+      typingEl.classList.toggle("visible", !!on);
+      if(on) messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    // =========================
+    // Lógica: Chat
+    // =========================
+    async function sendMessage(){
+      const text = inputEl.value.trim();
+      if(!text) return;
+
+      inputEl.value = "";
+      autoResize();
+      summaryCard.classList.remove("visible");
+
+      addMessage("user", text);
+      setTyping(true);
+
+      try{
+        const payload = {
+          mode: "chat",
+          messages: state.map(m => ({ role: m.role, content: m.content }))
+        };
+
+        const res = await fetch("/api/med", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok) throw new Error(data?.error || "Error del servidor");
+
+        const reply = (data?.reply || "").trim();
+        addMessage("assistant", reply || "Perdón, no pude generar respuesta. ¿Puedes intentar de nuevo?");
+      }catch(err){
+        addMessage("assistant",
+          "Tuve un problema técnico y no pude responder.\n" +
+          "Sugerencia rápida: recarga la página. Si sigue, revisa que tu backend /api/med esté funcionando."
+        );
+      }finally{
+        setTyping(false);
+      }
+    }
+
+    // =========================
+    // Lógica: Resumen final (cierre premium)
+    // =========================
+    async function generateSummary(){
+      if(state.length < 2){
+        summaryCard.classList.add("visible");
+        summaryContent.innerHTML = "<p style='color:var(--muted);font-size:12px;margin:0'>Aún no hay conversación suficiente para resumir.</p>";
+        return;
+      }
+
+      setTyping(true);
+      summaryCard.classList.remove("visible");
+
+      try{
+        const payload = {
+          mode: "summary",
+          messages: state.map(m => ({ role: m.role, content: m.content }))
+        };
+
+        const res = await fetch("/api/med", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+
+        const data = await res.json().catch(() => ({}));
+        if(!res.ok) throw new Error(data?.error || "Error del servidor");
+
+        const summary = data?.summary;
+        if(!summary){
+          summaryCard.classList.add("visible");
+          summaryContent.innerHTML = "<p style='color:var(--muted);font-size:12px;margin:0'>No pude generar el resumen (respuesta vacía).</p>";
+          return;
+        }
+
+        // Render UI del resumen (sin inventar nada fuera del JSON)
+        const html = `
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <div>
+              <div style="font-size:12px;color:rgba(233,238,252,.75);margin-bottom:6px">Resumen</div>
+              <div style="font-size:13px;line-height:1.5">${renderTextToHtml(summary.resumen || "")}</div>
+            </div>
+
+            <div>
+              <div style="font-size:12px;color:rgba(233,238,252,.75);margin-bottom:6px">Posibles causas (orientativo)</div>
+              <ul class="list" style="margin-top:0">
+                ${(summary.posibles_causas || []).slice(0,4).map(x =>
+                  `<li><strong>${escapeHtml(x.nombre || "")}</strong> (${escapeHtml(x.probabilidad || "")}) — ${escapeHtml(x.por_que || "")}</li>`
+                ).join("")}
+              </ul>
+            </div>
+
+            <div>
+              <div style="font-size:12px;color:rgba(233,238,252,.75);margin-bottom:6px">Qué hacer ahora</div>
+              <ul class="list" style="margin-top:0">
+                ${(summary.recomendaciones || []).slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div>
+              <div style="font-size:12px;color:rgba(233,238,252,.75);margin-bottom:6px">Señales de alarma</div>
+              <ul class="list" style="margin-top:0">
+                ${(summary.senales_de_alarma || []).slice(0,6).map(x => `<li>${escapeHtml(x)}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div>
+              <div style="font-size:12px;color:rgba(233,238,252,.75);margin-bottom:6px">Preguntas útiles para afinar (si quieres)</div>
+              <ul class="list" style="margin-top:0">
+                ${(summary.preguntas_para_aclarar || []).slice(0,4).map(x => `<li>${escapeHtml(x)}</li>`).join("")}
+              </ul>
+            </div>
+
+            <div style="border-top:1px solid var(--line);padding-top:10px">
+              <div style="font-size:12px;color:var(--muted);line-height:1.45">
+                ${escapeHtml(summary.nota_seguridad || "")}
+              </div>
+            </div>
+          </div>
+        `;
+
+        summaryCard.classList.add("visible");
+        summaryContent.innerHTML = html;
+
+        // Opcional: pega el resumen al chat como cierre
+        addMessage("assistant",
+          "**Resumen final**\n" +
+          (summary.resumen ? ("- " + summary.resumen + "\n") : "") +
+          "\n**Qué hacer ahora**\n" + (summary.recomendaciones || []).slice(0,4).map(x => "- " + x).join("\n") +
+          "\n\n**Señales de alarma**\n" + (summary.senales_de_alarma || []).slice(0,4).map(x => "- " + x).join("\n")
+        );
+
+      }catch(err){
+        summaryCard.classList.add("visible");
+        summaryContent.innerHTML = "<p style='color:var(--muted);font-size:12px;margin:0'>Tuve un problema generando el resumen.</p>";
+      }finally{
+        setTyping(false);
+      }
+    }
+
+    // =========================
+    // UX helpers
+    // =========================
+    function autoResize(){
+      inputEl.style.height = "auto";
+      inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + "px";
+    }
+    inputEl.addEventListener("input", autoResize);
+
+    inputEl.addEventListener("keydown", (e) => {
+      if(e.key === "Enter" && !e.shiftKey){
+        e.preventDefault();
+        sendMessage();
+      }
+    });
+
+    document.getElementById("btnSend").addEventListener("click", sendMessage);
+    document.getElementById("btnSummary").addEventListener("click", generateSummary);
+
+    document.getElementById("btnReset").addEventListener("click", () => {
+      if(!confirm("¿Reiniciar el chat? Esto borrará la conversación en este navegador.")) return;
+      state = [];
+      saveState();
+      summaryCard.classList.remove("visible");
+      boot();
+    });
+
+    // =========================
+    // Inicio
+    // =========================
+    function boot(){
+      render();
+      if(state.length === 0){
+        addMessage("assistant",
+          "Hola. Soy un asistente de **orientación médica**.\n\n" +
+          "Para partir: ¿qué te trae hoy? Si puedes, dime también tu **edad** (aprox) y desde **cuándo** te pasa.\n\n" +
+          "Si hay algo que se sienta urgente (dolor de pecho fuerte, falta de aire marcada, desmayo, confusión, sangrado importante), busca atención inmediata."
+        );
+      }
+      setTimeout(() => inputEl.focus(), 50);
+    }
+    boot();
+  </script>
+</body>
+</html>
