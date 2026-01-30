@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>czat · orientación médica</title>
+</head>
+<body>
+  <h3>czat (clon medyk.ai) · prueba</h3>
+
+  <div id="menu"></div>
+  <hr/>
+
+  <div id="messages" style="white-space:pre-wrap; font-family:system-ui, sans-serif;"></div>
+  <hr/>
+
+  <form id="composer">
+    <input id="text" placeholder="Escribe aquí…" style="width:70%" />
+    <button id="sendBtn" type="submit">Enviar</button>
+    <button id="resetBtn" type="button">Reiniciar</button>
+  </form>
+
+  <script>
+  (() => {
+    // =========================
+    // Config (MISMA LÓGICA DE CONEXIÓN QUE TUS ARCHIVOS)
+    // - Default apunta a tu proxy en Vercel
+    // - Permite override por URL: ?api=https://TU-PROYECTO.vercel.app/api/czat
+    // =========================
+    const STORAGE_KEY = "czat-chat-history";
+    const DEFAULT_API_URL = "https://hotel-chat-proxy.vercel.app/api/czat";
+    const apiUrl = new URLSearchParams(location.search).get("api") || DEFAULT_API_URL;
+
+    // =========================
+    // DOM
+    // =========================
+    const $menu = document.getElementById("menu");
+    const $messages = document.getElementById("messages");
+    const $form = document.getElementById("composer");
+    const $input = document.getElementById("text");
+    const $sendBtn = document.getElementById("sendBtn");
+    const $resetBtn = document.getElementById("resetBtn");
+
+    // =========================
+    // Estado
+    // =========================
+    let chat = loadChat(); // [{role:"user"|"assistant", content:"..."}]
+    let locked = false;
+
+    function setLocked(v) {
+      locked = v;
+      $sendBtn.disabled = v;
+      $input.disabled = v;
+      $resetBtn.disabled = v;
+    }
+
+    function loadChat() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(parsed)) return [];
+        return parsed
+          .filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+          .slice(-60);
+      } catch {
+        return [];
+      }
+    }
+
+    function persistChat() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chat.slice(-60)));
+    }
+
+    function add(role, content, save=true) {
+      const div = document.createElement("div");
+      div.textContent = (role === "user" ? "Tú: " : "Asistente: ") + content;
+      $messages.appendChild(div);
+      if (save) {
+        chat.push({ role, content });
+        persistChat();
+      }
+      window.scrollTo(0, document.body.scrollHeight);
+    }
+
+    function clearMessages() {
+      $messages.innerHTML = "";
+    }
+
+    function extractSummaryBlock(answerText) {
+      const marker = "RESUMEN_CLINICO:";
+      const idx = String(answerText || "").indexOf(marker);
+      if (idx === -1) return { main: String(answerText || "").trim(), summary: null };
+      const main = String(answerText || "").slice(0, idx).trim();
+      const summary = String(answerText || "").slice(idx).trim();
+      return { main, summary };
+    }
+
+    function isClosingMessage(text) {
+      const t = String(text || "").trim().toLowerCase();
+      return /^(gracias|ok|vale|listo|perfecto|entendido|eso es todo|nada mas|nada más|no gracias|ok gracias)\b/.test(t);
+    }
+
+    function renderMenu() {
+      $menu.innerHTML = "";
+
+      // Menú estilo medyk.ai (botones de entrada)
+      const buttons = [
+        { label: "Me siento muy mal", msg: "Me siento muy mal (quiero triage y orientación rápida)." },
+        { label: "Quiero ayudar a alguien", msg: "Quiero ayudar a alguien cercano. Te cuento la situación." },
+        { label: "Primeros auxilios", msg: "Necesito primeros auxilios. Te explico qué pasó." },
+        { label: "Entender síntomas", msg: "Quiero entender mis síntomas. Mi síntoma principal es:" },
+        { label: "Preparar consulta", msg: "Prepárame para una consulta médica. Mis síntomas son:" },
+        { label: "Entender exámenes", msg: "Explícame mis resultados/exámenes. El texto dice:" },
+      ];
+
+      buttons.forEach(b => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.textContent = b.label;
+        btn.onclick = () => sendUser(b.msg);
+        $menu.appendChild(btn);
+        $menu.appendChild(document.createTextNode(" "));
+      });
+
+      const small = document.createElement("div");
+      small.style.marginTop = "8px";
+      small.textContent = "API actual: " + apiUrl;
+      $menu.appendChild(document.createElement("br"));
+      $menu.appendChild(small);
+    }
+
+    async function callApi({ forceSummary=false } = {}) {
+      const trimmed = chat.slice(-24);
+      const payload = {
+        messages: trimmed,
+        lang: "es-CL",
+        forceSummary: Boolean(forceSummary),
+      };
+
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "");
+        throw new Error("HTTP " + res.status + " " + txt);
+      }
+
+      const data = await res.json();
+      return String(data && data.answer ? data.answer : "").trim();
+    }
+
+    async function sendUser(text, { forceSummary=null } = {}) {
+      const content = String(text || "").trim();
+      if (!content || locked) return;
+
+      add("user", content, true);
+
+      setLocked(true);
+      add("assistant", "…", false);
+
+      try {
+        const shouldForce = (forceSummary === true) || isClosingMessage(content);
+        const answer = await callApi({ forceSummary: shouldForce });
+
+        // reemplaza el "…" (último)
+        $messages.lastChild.remove();
+
+        const { main, summary } = extractSummaryBlock(answer);
+        if (main) add("assistant", main, true);
+        if (summary) add("assistant", "\n" + summary, true);
+
+        // Si el bot ofrece resumen, mostramos un mini prompt de sí/no (sin UI extra)
+        if (!shouldForce && /resumen/i.test(main) && /proximos pasos|próximos pasos/i.test(main)) {
+          add("assistant", "Responde: 'Sí' para resumen / 'No' para cerrar.", false);
+        }
+      } catch (e) {
+        $messages.lastChild.remove();
+        add("assistant", "Error conectando al servidor. Revisa tu URL ?api= ...", false);
+        console.error(e);
+      } finally {
+        setLocked(false);
+        $input.focus();
+      }
+    }
+
+    function renderHistory() {
+      clearMessages();
+
+      if (!chat.length) {
+        add("assistant",
+          "Hola. Te ayudo a entender síntomas y orientar próximos pasos (Chile). No doy diagnósticos.\n\n" +
+          "Parte por: síntoma principal + desde cuándo + intensidad + fiebre/temperatura (si hay) + otros síntomas.",
+          false
+        );
+        return;
+      }
+
+      chat.forEach(m => add(m.role, m.content, false));
+    }
+
+    // Eventos
+    $form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const t = $input.value;
+      $input.value = "";
+      sendUser(t);
+    });
+
+    $resetBtn.addEventListener("click", () => {
+      chat = [];
+      localStorage.removeItem(STORAGE_KEY);
+      renderHistory();
+    });
+
+    // Init
+    renderMenu();
+    renderHistory();
+    $input.focus();
+  })();
+  </script>
+</body>
+</html>
