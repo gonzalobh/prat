@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Consulta médica · Orientación</title>
+  <meta name="description" content="Chat de orientación médica. No reemplaza una evaluación presencial." />
+  <style>
+    :root { color-scheme: light; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background: #f6f7f9;
+      color: #111;
+    }
+    .app {
+      max-width: 780px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid #e6e8ee;
+      border-radius: 12px;
+      position: sticky;
+      top: 12px;
+      z-index: 2;
+    }
+    .title { font-weight: 650; }
+    .sub { font-size: 12px; color: #555; margin-top: 2px; }
+    .header-left { display: flex; flex-direction: column; }
+    button {
+      border: 1px solid #d6d9e2;
+      background: #fff;
+      border-radius: 10px;
+      padding: 8px 10px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+    button:hover { background: #fafbff; }
+    button:disabled { opacity: .6; cursor: not-allowed; }
+
+    #messages {
+      flex: 1;
+      background: #fff;
+      border: 1px solid #e6e8ee;
+      border-radius: 12px;
+      padding: 14px;
+      overflow: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .msg {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+    }
+    .bubble {
+      max-width: 92%;
+      padding: 10px 12px;
+      border-radius: 12px;
+      border: 1px solid #e6e8ee;
+      line-height: 1.35;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .user { justify-content: flex-end; }
+    .user .bubble {
+      background: #0b62ff;
+      color: white;
+      border-color: #0b62ff;
+    }
+    .assistant .bubble { background: #f7f8fb; }
+    .meta {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+    }
+    .row-actions { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+    .chip {
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 14px;
+      border: 1px solid #d6d9e2;
+      background: #fff;
+    }
+    .chip:hover { background: #f3f5ff; }
+
+    .typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #555;
+      font-size: 14px;
+    }
+    .dots { display: inline-flex; gap: 3px; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #999; animation: blink 1.2s infinite; }
+    .dot:nth-child(2){ animation-delay: .15s;}
+    .dot:nth-child(3){ animation-delay: .3s;}
+    @keyframes blink { 0%, 80%, 100% { opacity: .2; } 40% { opacity: 1; } }
+
+    form {
+      display: flex;
+      gap: 10px;
+      padding: 12px 14px;
+      background: #fff;
+      border: 1px solid #e6e8ee;
+      border-radius: 12px;
+    }
+    input {
+      flex: 1;
+      border: 1px solid #d6d9e2;
+      border-radius: 10px;
+      padding: 10px 12px;
+      font-size: 15px;
+      outline: none;
+    }
+    input:focus { border-color: #0b62ff55; box-shadow: 0 0 0 4px #0b62ff12; }
+    .send {
+      background: #0b62ff;
+      color: white;
+      border-color: #0b62ff;
+      padding: 10px 14px;
+      font-weight: 600;
+    }
+    .send:hover { background: #0a58e6; }
+
+    footer {
+      font-size: 12px;
+      color: #555;
+      padding: 0 2px 8px 2px;
+    }
+    .small-link { color: #0b62ff; cursor: pointer; text-decoration: underline; }
+    .summary {
+      border: 1px dashed #cfd6e6;
+      background: #fbfcff;
+      border-radius: 12px;
+      padding: 12px;
+      margin-top: 10px;
+    }
+    .summary h3 { margin: 0 0 8px 0; font-size: 14px; }
+    .summary .line { margin: 6px 0; }
+    .summary .k { font-weight: 650; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="header-left">
+        <div class="title">Consulta médica</div>
+        <div class="sub">Orientación por síntomas · No reemplaza una evaluación presencial</div>
+      </div>
+      <div style="display:flex; gap:8px;">
+        <button id="copyLinkBtn" title="Copiar link con API actual">Copiar link</button>
+        <button id="resetBtn" title="Borra la conversación guardada">Reiniciar</button>
+      </div>
+    </header>
+
+    <div id="messages" aria-live="polite"></div>
+
+    <form id="composer" autocomplete="off">
+      <input id="text" placeholder="Describe tu síntoma (por ejemplo: 'fiebre y tos hace 3 días')..." />
+      <button class="send" id="sendBtn" type="submit">Enviar</button>
+    </form>
+
+    <footer>
+      <div>
+        Consejo: escribe lo más concreto posible (síntoma principal, desde cuándo, intensidad, fiebre, y cualquier antecedente importante).
+      </div>
+      <div style="margin-top:6px;">
+        En caso de síntomas graves o empeoramiento rápido, busca atención presencial/urgencias.
+      </div>
+    </footer>
+  </div>
+
+<script>
+(() => {
+  // =========================
+  // Config (MISMA CONEXIÓN QUE TU ARCHIVO ORIGINAL)
+  // =========================
+  const STORAGE_KEY = "medis-chat-history";
+  const DEFAULT_API_URL = "https://hotel-chat-proxy.vercel.app/api/medis";
+
+  // Permite override por URL: ?api=https://TU-PROYECTO.vercel.app/api/medis
+  const apiUrl = new URLSearchParams(location.search).get("api") || DEFAULT_API_URL;
+
+  // =========================
+  // DOM
+  // =========================
+  const $messages = document.getElementById("messages");
+  const $form = document.getElementById("composer");
+  const $input = document.getElementById("text");
+  const $sendBtn = document.getElementById("sendBtn");
+  const $resetBtn = document.getElementById("resetBtn");
+  const $copyLinkBtn = document.getElementById("copyLinkBtn");
+
+  // =========================
+  // Estado
+  // =========================
+  let chat = loadChat(); // [{role:"user"|"assistant", content:"..."}]
+  let facts = loadFacts(); // {age, sex, duration, ...}
+  let typingEl = null;
+
+  // =========================
+  // UI helpers
+  // =========================
+  function scrollToBottom() {
+    $messages.scrollTop = $messages.scrollHeight;
+  }
+
+  function escapeHtml(s) {
+    return s.replace(/[&<>"]/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[c]));
+  }
+
+  function addMessage(role, content, { save = true } = {}) {
+    const row = document.createElement("div");
+    row.className = `msg ${role === "user" ? "user" : "assistant"}`;
+
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = content;
+
+    row.appendChild(bubble);
+    $messages.appendChild(row);
+
+    if (save) {
+      chat.push({ role, content });
+      persistChat();
+    }
+
+    scrollToBottom();
+    return row;
+  }
+
+  function addAssistantActions(actions) {
+    const row = document.createElement("div");
+    row.className = "msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    const wrap = document.createElement("div");
+    wrap.className = "row-actions";
+
+    actions.forEach(({ label, onClick }) => {
+      const btn = document.createElement("button");
+      btn.className = "chip";
+      btn.type = "button";
+      btn.textContent = label;
+      btn.addEventListener("click", onClick);
+      wrap.appendChild(btn);
+    });
+
+    bubble.appendChild(wrap);
+    row.appendChild(bubble);
+    $messages.appendChild(row);
+    scrollToBottom();
+    return row;
+  }
+
+  function showTyping() {
+    if (typingEl) return;
+    const row = document.createElement("div");
+    row.className = "msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+
+    const t = document.createElement("div");
+    t.className = "typing";
+    t.innerHTML = `<span>Escribiendo</span><span class="dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>`;
+    bubble.appendChild(t);
+    row.appendChild(bubble);
+    $messages.appendChild(row);
+    typingEl = row;
+    scrollToBottom();
+  }
+
+  function hideTyping() {
+    if (!typingEl) return;
+    typingEl.remove();
+    typingEl = null;
+  }
+
+  function setLocked(locked) {
+    $sendBtn.disabled = locked;
+    $input.disabled = locked;
+    $resetBtn.disabled = locked;
+  }
+
+  // =========================
+  // Persistencia
+  // =========================
+  function loadChat() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(parsed)) return [];
+      return parsed
+        .filter(m => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+        .slice(-60);
+    } catch {
+      return [];
+    }
+  }
+
+  function persistChat() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(chat.slice(-60)));
+  }
+
+  function loadFacts() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY + ":facts");
+      return raw ? JSON.parse(raw) : {};
+    } catch {
+      return {};
+    }
+  }
+
+  function persistFacts() {
+    localStorage.setItem(STORAGE_KEY + ":facts", JSON.stringify(facts || {}));
+  }
+
+  // =========================
+  // Heurísticas (suaves) para ayudar al modelo a no repetirse
+  // =========================
+  function updateFactsFromUserText(text) {
+    const t = String(text || "").toLowerCase();
+
+    // Edad (ej: "tengo 32 años")
+    const ageMatch = t.match(/tengo\s+(\d{1,2})\s*a(n|ñ)os/);
+    if (ageMatch) facts.age = Number(ageMatch[1]);
+
+    // Sexo/género (muy básico)
+    if (/soy\s+(hombre|varon|varón)/.test(t)) facts.sex = "hombre";
+    if (/soy\s+(mujer)/.test(t)) facts.sex = "mujer";
+
+    // Embarazo (si lo menciona)
+    if (/embarazad/.test(t)) facts.pregnancy = "posible/confirmado";
+
+    // Fiebre (y temperatura)
+    const tempMatch = t.match(/(\d{2}(?:[\.,]\d)?)\s*°?\s*c/);
+    if (tempMatch) facts.temperatureC = tempMatch[1].replace(",", ".");
+    if (/fiebre/.test(t)) facts.fever = true;
+
+    // Duración (simple)
+    const durMatch = t.match(/hace\s+(\d+)\s*(minutos|min|horas|hora|dias|día|días|semanas|meses)/);
+    if (durMatch) facts.duration = `${durMatch[1]} ${durMatch[2]}`;
+
+    // Intensidad (0-10)
+    const sevMatch = t.match(/(\d{1,2})\s*\/\s*10/);
+    if (sevMatch) facts.severity10 = Math.min(10, Math.max(0, Number(sevMatch[1])));
+
+    if (!facts.severity10) {
+      if (/(muy fuerte|fuertisimo|fuertísimo|insoportable)/.test(t)) facts.severity10 = 9;
+      else if (/(fuerte)/.test(t)) facts.severity10 = 7;
+      else if (/(moderad)/.test(t)) facts.severity10 = 5;
+      else if (/(leve|suave)/.test(t)) facts.severity10 = 3;
+    }
+
+    // Náuseas / vómitos
+    if (/(nausea|náusea)/.test(t)) facts.nausea = true;
+    if (/(vomit|vómit)/.test(t)) facts.vomiting = true;
+
+    // Diarrea / constipación
+    if (/diarre/.test(t)) facts.diarrhea = true;
+    if (/(constipad|estrenid|estreñid)/.test(t)) facts.constipation = true;
+
+    // Urinario
+    if (/(ardor al orinar|dolor al orinar|escozor al orinar)/.test(t)) facts.urinaryBurning = true;
+    if (/(orina con sangre|sangre en la orina)/.test(t)) facts.urineBlood = true;
+
+    // Respiratorio / pecho
+    if (/(falta de aire|me cuesta respirar|dificultad para respirar)/.test(t)) facts.shortnessBreath = true;
+    if (/(dolor de pecho|opresion en el pecho|opresión en el pecho)/.test(t)) facts.chestPain = true;
+
+    // Ubicación del dolor (simple)
+    if (/abdomen|guata|estomago|estómago|barriga|vientre|dolor/.test(t)) {
+      if (/(lado derecho|derecho)/.test(t)) facts.painSide = "derecha";
+      if (/(lado izquierdo|izquierdo)/.test(t)) facts.painSide = "izquierda";
+
+      if (/(arriba|bajo las costillas|costillas|hipocondrio)/.test(t)) facts.painLevel = "arriba";
+      if (/(abajo|ingle|fosa iliaca|fosa ilíaca)/.test(t)) facts.painLevel = "abajo";
+
+      if (/(flanco|lumbar|espalda baja|riñon|riñón)/.test(t)) facts.painRegion = "flanco/lumbar";
+    }
+
+    persistFacts();
+  }
+
+  function buildContextString() {
+    const lines = [];
+    if (facts.age) lines.push(`Edad: ${facts.age}`);
+    if (facts.sex) lines.push(`Sexo: ${facts.sex}`);
+    if (facts.pregnancy) lines.push(`Embarazo: ${facts.pregnancy}`);
+    if (facts.duration) lines.push(`Duración referida: ${facts.duration}`);
+    if (facts.severity10) lines.push(`Intensidad: ${facts.severity10}/10`);
+
+    if (facts.fever) lines.push(`Fiebre: sí`);
+    if (facts.temperatureC) lines.push(`Temperatura: ${facts.temperatureC} C`);
+
+    if (facts.nausea) lines.push(`Náuseas: sí`);
+    if (facts.vomiting) lines.push(`Vómitos: sí`);
+    if (facts.diarrhea) lines.push(`Diarrea: sí`);
+    if (facts.constipation) lines.push(`Constipación: sí`);
+
+    if (facts.urinaryBurning) lines.push(`Ardor al orinar: sí`);
+    if (facts.urineBlood) lines.push(`Sangre en orina: sí`);
+
+    if (facts.shortnessBreath) lines.push(`Falta de aire: sí`);
+    if (facts.chestPain) lines.push(`Dolor de pecho: sí`);
+
+    if (facts.painSide) lines.push(`Lado del dolor: ${facts.painSide}`);
+    if (facts.painLevel) lines.push(`Altura del dolor: ${facts.painLevel}`);
+    if (facts.painRegion) lines.push(`Región del dolor: ${facts.painRegion}`);
+
+    return lines.length ? lines.join("\n") : "";
+  }
+
+  function isClosingMessage(text) {
+    const t = text.trim().toLowerCase();
+    return /^(gracias|ok|vale|listo|perfecto|entendido|eso es todo|nada mas|nada más|no gracias|ok gracias)\b/.test(t);
+  }
+
+  // =========================
+  // Resumen (parsing del bloque RESUMEN_CLINICO)
+  // =========================
+  function extractSummaryBlock(answerText) {
+    const marker = "RESUMEN_CLINICO:";
+    const idx = answerText.indexOf(marker);
+    if (idx === -1) return { main: answerText.trim(), summary: null };
+
+    const main = answerText.slice(0, idx).trim();
+    const rest = answerText.slice(idx + marker.length).trim();
+
+    const lines = rest.split(/\n+/).map(s => s.trim()).filter(Boolean);
+    const out = { Resumen: "", Probable: "", Cuidados: "", Alerta: "" };
+
+    for (const line of lines) {
+      const m = line.match(/^(Resumen|Probable|Cuidados|Alerta)\s*:\s*(.*)$/i);
+      if (m) {
+        const key = m[1][0].toUpperCase() + m[1].slice(1).toLowerCase();
+        // Normaliza a las llaves exactas
+        const k = key === "Resumen" ? "Resumen"
+          : key === "Probable" ? "Probable"
+          : key === "Cuidados" ? "Cuidados"
+          : "Alerta";
+        out[k] = m[2].trim();
+      }
+    }
+
+    return { main, summary: out };
+  }
+
+  function renderSummaryCard(summaryObj) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "summary";
+    wrapper.innerHTML = `
+      <h3>Resumen clínico y próximos pasos</h3>
+      <div class="line"><span class="k">Resumen:</span> <span>${escapeHtml(summaryObj.Resumen || "")}</span></div>
+      <div class="line"><span class="k">Probable:</span> <span>${escapeHtml(summaryObj.Probable || "")}</span></div>
+      <div class="line"><span class="k">Cuidados:</span> <span>${escapeHtml(summaryObj.Cuidados || "")}</span></div>
+      <div class="line"><span class="k">Alerta:</span> <span>${escapeHtml(summaryObj.Alerta || "")}</span></div>
+    `;
+    // Adjunta como "mensaje asistente" especial
+    const row = document.createElement("div");
+    row.className = "msg assistant";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.appendChild(wrapper);
+    row.appendChild(bubble);
+    $messages.appendChild(row);
+    scrollToBottom();
+  }
+
+  function maybeShowSummaryChoice(answerText) {
+    // Si el modelo pregunta por el resumen, mostramos botones.
+    const normalized = answerText.toLowerCase();
+    if (!normalized.includes("resumen clínico") || !normalized.includes("próximos pasos")) return;
+
+    addAssistantActions([
+      { label: "Sí, dame el resumen", onClick: () => {
+          sendUser("Sí, por favor. Dame el resumen clínico y próximos pasos.", { forceSummary: true });
+        }
+      },
+      { label: "No, gracias", onClick: () => {
+          sendUser("No, gracias.", { forceSummary: false });
+        }
+      }
+    ]);
+  }
+
+  // =========================
+  // API
+  // =========================
+  async function callApi({ forceSummary = false } = {}) {
+    const context = buildContextString();
+
+    // Enviamos solo últimos mensajes para controlar tamaño
+    const trimmed = chat.slice(-24);
+
+    const payload = {
+      messages: trimmed,
+      lang: "es",
+      forceSummary,
+      context,
+    };
+
+    const res = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const txt = await res.text().catch(() => "");
+      throw new Error(`Error HTTP ${res.status}. ${txt}`);
+    }
+
+    const data = await res.json();
+    return String(data?.answer || "").trim();
+  }
+
+  // =========================
+  // Flow
+  // =========================
+  async function sendUser(text, { forceSummary = null } = {}) {
+    const content = String(text || "").trim();
+    if (!content) return;
+
+    addMessage("user", content);
+    updateFactsFromUserText(content);
+
+    setLocked(true);
+    showTyping();
+
+    try {
+      const shouldForce = (forceSummary === true) || isClosingMessage(content);
+      const answer = await callApi({ forceSummary: shouldForce });
+
+      hideTyping();
+
+      const { main, summary } = extractSummaryBlock(answer);
+      if (main) addMessage("assistant", main);
+      if (summary) renderSummaryCard(summary);
+
+      // Si el bot propone resumen (antes de entregarlo), mostramos botones
+      maybeShowSummaryChoice(main || answer);
+
+    } catch (err) {
+      hideTyping();
+      addMessage("assistant", "Ups: hubo un error al conectar con el servidor. Intenta nuevamente.");
+      console.error(err);
+    } finally {
+      setLocked(false);
+      $input.focus();
+    }
+  }
+
+  function renderHistory() {
+    $messages.innerHTML = "";
+    if (!chat.length) {
+      addMessage("assistant",
+        "Hola. Soy un asistente de orientación médica. Cuéntame tu síntoma principal y desde cuándo empezó.\n\nSi puedes, agrega: intensidad, fiebre (y temperatura), y cualquier antecedente importante."
+      , { save: false });
+
+      addAssistantActions([
+        { label: "Dolor de garganta", onClick: () => sendUser("Tengo dolor de garganta desde ayer.", {}) },
+        { label: "Fiebre", onClick: () => sendUser("Tengo fiebre y malestar general hace 2 días.", {}) },
+        { label: "Dolor abdominal", onClick: () => sendUser("Tengo dolor abdominal desde hace 6 horas.", {}) },
+        { label: "Tos / resfrío", onClick: () => sendUser("Tengo tos y congestión nasal hace 3 días.", {}) },
+      ]);
+      return;
+    }
+
+    for (const m of chat) addMessage(m.role, m.content, { save: false });
+  }
+
+  // =========================
+  // Eventos
+  // =========================
+  $form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const t = $input.value;
+    $input.value = "";
+    sendUser(t);
+  });
+
+  $resetBtn.addEventListener("click", () => {
+    if (!confirm("¿Reiniciar chat? Se borrará la conversación guardada en este navegador.")) return;
+    chat = [];
+    facts = {};
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY + ":facts");
+    renderHistory();
+    $input.focus();
+  });
+
+  $copyLinkBtn.addEventListener("click", async () => {
+    const link = `${location.origin}${location.pathname}?api=${encodeURIComponent(apiUrl)}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      $copyLinkBtn.textContent = "¡Copiado!";
+      setTimeout(() => ($copyLinkBtn.textContent = "Copiar link"), 900);
+    } catch {
+      prompt("Copia este link:", link);
+    }
+  });
+
+  // Init
+  renderHistory();
+  $input.focus();
+})();
+</script>
+</body>
+</html>
