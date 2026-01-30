@@ -1768,6 +1768,8 @@ body {
     let questionHistory = { // MODIFICADO
       symptomAsked: false, // MODIFICADO
       durationAsked: false, // MODIFICADO
+      abdominalPainAsked: false, // MODIFICADO
+      fluidsAsked: false, // MODIFICADO
       feverAsked: false, // MODIFICADO
       medicationAsked: false, // MODIFICADO
     }; // MODIFICADO
@@ -2266,17 +2268,64 @@ function hasMinimumClinicalInfo() {
   );
 }
 
-function nextClinicalQuestion() {
+function isEarlyInterviewPhase() {
+  return messages.filter((m) => m.role === "user").length < 2;
+}
+
+function hasDiarrheaMentioned() {
+  const userMessages = getUserMessagesForSummary();
+  return userMessages.some((message) => normalizeText(message).includes("diarrea"));
+}
+
+function hasSufficientClinicalInfo() {
+  let count = 0;
+  if (clinicalState.location) count++;
+  if (clinicalState.duration) count++;
+  if (clinicalState.fever !== null) count++;
+  if (clinicalState.pain !== null || hasDiarrheaMentioned()) count++;
+  return count >= 3;
+}
+
+function hasAskedKeyQuestion() {
+  return (
+    questionHistory.durationAsked ||
+    questionHistory.abdominalPainAsked ||
+    questionHistory.fluidsAsked
+  );
+}
+
+function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
+  if (clinicalState.duration === null) {
+    questionHistory.durationAsked = true;
+    return "¿Desde cuándo exactamente tienes este síntoma?";
+  }
+
   if (clinicalState.location === null) {
     return "¿Dónde sientes la molestia o el dolor?";
   }
 
-  if (clinicalState.duration === null) {
-    return "¿Desde cuándo tienes este síntoma?";
-  }
-
   if (clinicalState.fever === null) {
     return "¿Has tenido fiebre?";
+  }
+
+  if (clinicalState.pain === null && !hasDiarrheaMentioned()) {
+    questionHistory.abdominalPainAsked = true;
+    return "¿Tienes dolor abdominal?";
+  }
+
+  if (requireKeyQuestion && !questionHistory.abdominalPainAsked) {
+    questionHistory.abdominalPainAsked = true;
+    return "¿Tienes dolor abdominal?";
+  }
+
+  if (requireKeyQuestion && !questionHistory.fluidsAsked) {
+    questionHistory.fluidsAsked = true;
+    return "¿Has podido tolerar líquidos?";
+  }
+
+  if (requireKeyQuestion && !questionHistory.durationAsked) {
+    questionHistory.durationAsked = true;
+    return "¿Desde cuándo exactamente tienes este síntoma?";
   }
 
   return null;
@@ -2378,6 +2427,8 @@ function resetConversationState() { // MODIFICADO
   questionHistory = { // MODIFICADO
     symptomAsked: false, // MODIFICADO
     durationAsked: false, // MODIFICADO
+    abdominalPainAsked: false, // MODIFICADO
+    fluidsAsked: false, // MODIFICADO
     feverAsked: false, // MODIFICADO
     medicationAsked: false, // MODIFICADO
   }; // MODIFICADO
@@ -2796,31 +2847,69 @@ function extractSummaryFromAssistant(text) {
   return { cleanText, summary };
 }
 
+function softenAssistantText(text) {
+  if (!text) return "";
+  const replacements = [
+    { pattern: /sugiere que tienes/gi, replacement: "lo más frecuente en este escenario es" },
+    { pattern: /indica que tienes/gi, replacement: "una posibilidad probable es" },
+    { pattern: /podr[ií]as estar enfrentando/gi, replacement: "esto podría corresponder a" },
+  ];
+  return replacements.reduce(
+    (acc, { pattern, replacement }) => acc.replace(pattern, replacement),
+    text
+  );
+}
+
+function enforceOrientationResponse(text) {
+  const sentences = (text || "")
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter(Boolean);
+  const withoutQuestions = sentences.filter((sentence) => !messageHasQuestion(sentence));
+  if (!withoutQuestions.length) {
+    return "Con la información disponible, la orientación general es observar la evolución y consultar si hay señales de alarma.";
+  }
+  return withoutQuestions.join(" ");
+}
+
+function capitalizeSentence(text) {
+  if (!text) return "";
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
+function buildSummarySentence(symptoms, duration) {
+  if (!symptoms.length) {
+    return duration
+      ? `Síntomas referidos recientemente, ${duration}.`
+      : "Síntomas referidos recientemente.";
+  }
+
+  if (symptoms.length === 1) {
+    const base = `${capitalizeSentence(symptoms[0])}`;
+    return duration ? `${base}, ${duration}.` : `${base}.`;
+  }
+
+  const [first, ...rest] = symptoms;
+  const restText = rest.length ? rest.join(", ").replace(/, ([^,]*)$/, " y $1") : "";
+  const base = `${capitalizeSentence(first)} asociada a ${restText}`;
+  return duration ? `${base}, ${duration}.` : `${base}.`;
+}
+
 function buildLocalSummaryData() {
   const userMessages = getUserMessagesForSummary();
   const symptom = getSymptomFromHistory();
   const duration = extractDurationPhrase(userMessages);
-  const lastMessage = userMessages[userMessages.length - 1] || "";
-  const resumenParts = [];
-
-  if (symptom) {
-    resumenParts.push(`Síntoma principal: ${symptom}.`);
-  } else if (lastMessage) {
-    resumenParts.push(shortenText(lastMessage, 100));
-  } else {
-    resumenParts.push("Síntomas referidos recientemente.");
-  }
-
-  if (duration) {
-    resumenParts.push(`Duración: ${duration}.`);
-  }
+  const symptoms = Array.from(
+    new Set(userMessages.flatMap((message) => extractAllSymptoms(message)))
+  );
+  const resumen = buildSummarySentence(symptoms, duration);
 
   const probable = symptom
     ? buildProbableCauses(symptom)[0]
     : "posible causa digestiva / inflamatoria según lo descrito";
 
   return {
-    resumen: resumenParts.join(" "),
+    resumen,
     probable,
     cuidados: "hidratación, reposo, observar evolución",
     alerta:
@@ -3324,9 +3413,14 @@ async function sendMessage(text) {
   }
 
   if (phase === "entrevista") {
-    const question = nextClinicalQuestion();
-    if (question) {
-      addAssistantMessage(question);
+    const earlyInterview = isEarlyInterviewPhase();
+    const sufficientInfo = hasSufficientClinicalInfo();
+    const keyQuestionAsked = hasAskedKeyQuestion();
+    const requiresInterview = earlyInterview || !sufficientInfo || !keyQuestionAsked;
+    if (requiresInterview) {
+      const question = nextClinicalQuestion({ requireKeyQuestion: !keyQuestionAsked || earlyInterview });
+      const fallbackQuestion = "¿Hay algún otro síntoma importante que deba saber?";
+      addAssistantMessage(question || fallbackQuestion);
       finalizeLocalResponse();
       return;
     }
@@ -3340,6 +3434,7 @@ async function sendMessage(text) {
 
   if (phase === "cierre") {
     if (!summaryShown) {
+      addAssistantMessage("Gracias, aquí tienes el resumen clínico.");
       pendingSummaryData = buildLocalSummaryData();
       renderSummaryCard(pendingSummaryData);
       pendingSummaryData = null;
@@ -3392,7 +3487,11 @@ async function sendMessage(text) {
 
     typingIndicator?.remove();
     if (assistantText) {
-      appendMessage("assistant", assistantText);
+      const softenedText = softenAssistantText(assistantText);
+      const finalText = phase === "orientacion"
+        ? enforceOrientationResponse(softenedText)
+        : softenedText;
+      appendMessage("assistant", finalText);
     } else {
       recordMessage("assistant", assistantText, { includeInStorage: false });
     }
