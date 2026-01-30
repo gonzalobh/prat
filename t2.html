@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>Profe de Matemáticas</title>
+  <title>ReplyFast</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Chat con un profesor de matemáticas. Haz cualquier pregunta." />
+  <meta name="description" content="Responde mensajes difíciles en segundos. Pega el mensaje y recibe respuestas listas." />
 
   <style>
     body {
@@ -58,8 +58,36 @@
 
     .input-container {
       display: flex;
+      flex-direction: column;
       padding: 14px;
       border-top: 1px solid #e5e7eb;
+      gap: 10px;
+    }
+
+    .context-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .context-button {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .context-button.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+
+    .input-row {
+      display: flex;
       gap: 10px;
     }
 
@@ -132,8 +160,17 @@
   <div class="messages" id="messages"></div>
 
   <form class="input-container" id="form">
-    <input id="input" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off" />
-    <button type="submit">Generar respuestas</button>
+    <div class="context-selector" id="contextSelector">
+      <button type="button" class="context-button active" data-context="General">General</button>
+      <button type="button" class="context-button" data-context="Trabajo">Trabajo</button>
+      <button type="button" class="context-button" data-context="Amor">Amor</button>
+      <button type="button" class="context-button" data-context="Familia">Familia</button>
+      <button type="button" class="context-button" data-context="Amistad">Amistad</button>
+    </div>
+    <div class="input-row">
+      <input id="input" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off" />
+      <button type="submit">Generar respuestas</button>
+    </div>
   </form>
 </div>
 
@@ -147,8 +184,11 @@
   const menuBtn = document.getElementById("menuBtn");
   const menu = document.getElementById("menu");
   const resetBtn = document.getElementById("resetBtn");
+  const contextSelector = document.getElementById("contextSelector");
+  const contextButtons = contextSelector.querySelectorAll(".context-button");
 
   let messages = [];
+  let currentContext = "General";
 
   const WELCOME =
     "Pega aquí el mensaje que acabas de recibir.\n" +
@@ -173,9 +213,23 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }
 
+  function setContext(context) {
+    currentContext = context;
+    contextButtons.forEach(button => {
+      button.classList.toggle("active", button.dataset.context === context);
+    });
+  }
+
+  contextButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      setContext(button.dataset.context);
+    });
+  });
+
   async function sendMessage(text) {
+    const payloadFinal = `[Contexto: ${currentContext}]\n${text}`;
     messagesEl.innerHTML = "";
-    messages = [{ role: "user", content: text }];
+    messages = [{ role: "user", content: payloadFinal }];
     addMessage("user", text);
     saveChat();
 
@@ -205,6 +259,7 @@
     messages = [];
     messagesEl.innerHTML = "";
     addMessage("assistant", WELCOME);
+    setContext("General");
     menu.classList.remove("open");
   };
 
