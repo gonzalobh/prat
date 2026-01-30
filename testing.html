@@ -14,6 +14,7 @@ estilos y animaciones que tu versión original.
 SOLO se simplifica la lógica JS.
 -->
 
+
 <script>
   const messagesContainer = document.querySelector(".messages-container");
   const input = document.querySelector(".message-input");
@@ -31,7 +32,6 @@ SOLO se simplifica la lógica JS.
 
     message.appendChild(bubble);
     messagesContainer.appendChild(message);
-
     messagesContainer.scrollTop = messagesContainer.scrollHeight;
   }
 
@@ -40,7 +40,6 @@ SOLO se simplifica la lógica JS.
     if (!text) return;
 
     input.value = "";
-
     messages.push({ role: "user", content: text });
     addMessage("user", text);
 
@@ -49,11 +48,10 @@ SOLO se simplifica la lógica JS.
     const res = await fetch("/api/testing", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages }),
+      body: JSON.stringify({ messages })
     });
 
     const data = await res.json();
-
     messages.push({ role: "assistant", content: data.answer });
     addMessage("assistant", data.answer);
 
@@ -66,18 +64,12 @@ SOLO se simplifica la lógica JS.
   }
 
   sendButton.addEventListener("click", sendMessage);
-
-  input.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") {
-      sendMessage();
-    }
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") sendMessage();
   });
 
-  // Botón "..." existente
   const resetItem = document.querySelector(".chat-menu-item");
-  if (resetItem) {
-    resetItem.addEventListener("click", resetChat);
-  }
+  if (resetItem) resetItem.addEventListener("click", resetChat);
 </script>
 
 </body>
