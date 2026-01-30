@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Profe de Matemáticas</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Chat con un profesor de matemáticas. Haz cualquier pregunta." />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f7f7f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 720px;
+      height: 90vh;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.12);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 14px 18px;
+      border-radius: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .assistant {
+      background: #f1f1f1;
+      align-self: flex-start;
+    }
+
+    .user {
+      background: #dbeafe;
+      align-self: flex-end;
+    }
+
+    .input-container {
+      display: flex;
+      padding: 14px;
+      border-top: 1px solid #e5e7eb;
+      gap: 10px;
+    }
+
+    input {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      outline: none;
+    }
+
+    button {
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    .menu-wrapper {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+    }
+
+    .menu-button {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .menu {
+      position: absolute;
+      right: 0;
+      margin-top: 8px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+    }
+
+    .menu.open {
+      display: block;
+    }
+
+    .menu button {
+      background: none;
+      color: #111;
+      width: 100%;
+      text-align: left;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="menu-wrapper">
+    <button class="menu-button" id="menuBtn">⋯</button>
+    <div class="menu" id="menu">
+      <button id="resetBtn">↺ Reiniciar chat</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <form class="input-container" id="form">
+    <input id="input" placeholder="Escribe tu pregunta de matemáticas…" autocomplete="off" />
+    <button type="submit">Enviar</button>
+  </form>
+</div>
+
+<script>
+  const API_URL = "https://hotel-chat-proxy.vercel.app/api/t1";
+  const STORAGE_KEY = "t1-chat-history";
+
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const menuBtn = document.getElementById("menuBtn");
+  const menu = document.getElementById("menu");
+  const resetBtn = document.getElementById("resetBtn");
+
+  let messages = [];
+
+  const WELCOME =
+    "Hola, soy tu profe de matemáticas.\n" +
+    "Haz cualquier pregunta relacionada (por ejemplo: fracciones, ecuaciones, álgebra, geometría).";
+
+  function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function loadChat() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      messages = JSON.parse(saved);
+      messages.forEach(m => addMessage(m.role, m.content));
+    } else {
+      addMessage("assistant", WELCOME);
+    }
+  }
+
+  function saveChat() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }
+
+  async function sendMessage(text) {
+    addMessage("user", text);
+    messages.push({ role: "user", content: text });
+    saveChat();
+
+    const res = await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ messages })
+    });
+
+    const data = await res.json();
+    addMessage("assistant", data.answer);
+    messages.push({ role: "assistant", content: data.answer });
+    saveChat();
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    sendMessage(text);
+  });
+
+  menuBtn.onclick = () => menu.classList.toggle("open");
+  resetBtn.onclick = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    messages = [];
+    messagesEl.innerHTML = "";
+    addMessage("assistant", WELCOME);
+    menu.classList.remove("open");
+  };
+
+  loadChat();
+</script>
+
+</body>
+</html>
+
