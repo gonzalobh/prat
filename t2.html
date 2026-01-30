@@ -228,21 +228,39 @@
   }
 
 function hasValidOptions(answer) {
-  const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
-  const counts = labels.map(label => answer.split(label).length - 1);
-  const indices = labels.map(label => answer.indexOf(label));
-  return counts.every(count => count === 1) &&
-    indices.every(index => index !== -1) &&
-    indices[0] < indices[1] &&
-    indices[1] < indices[2];
+  const option1Regex = /opci[oó]n\s*1\s*:/i;
+  const option2Regex = /opci[oó]n\s*2\s*:/i;
+  const option3Regex = /opci[oó]n\s*3\s*:/i;
+  const optionSequenceRegex = /opci[oó]n\s*[123]\s*:/gi;
+
+  const index1 = answer.search(option1Regex);
+  const index2 = answer.search(option2Regex);
+  const index3 = answer.search(option3Regex);
+
+  if (index1 === -1 || index2 === -1 || index3 === -1) {
+    return false;
+  }
+
+  if (!(index1 < index2 && index2 < index3)) {
+    return false;
+  }
+
+  const matches = answer.match(optionSequenceRegex) || [];
+  return matches.length >= 3;
 }
 
 function splitOptions(answer) {
-  const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
-  const indices = labels.map(label => answer.indexOf(label));
-  return labels.map((label, index) => {
-    const start = indices[index];
-    const end = index < indices.length - 1 ? indices[index + 1] : answer.length;
+  const optionRegex = /opci[oó]n\s*[123]\s*:/gi;
+  const matches = [...answer.matchAll(optionRegex)];
+
+  if (matches.length < 3) {
+    return [];
+  }
+
+  const firstThree = matches.slice(0, 3);
+  return firstThree.map((match, index) => {
+    const start = match.index;
+    const end = index < firstThree.length - 1 ? firstThree[index + 1].index : answer.length;
     return answer.slice(start, end).trim();
   });
 }
