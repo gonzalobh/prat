@@ -132,8 +132,8 @@
   <div class="messages" id="messages"></div>
 
   <form class="input-container" id="form">
-    <input id="input" placeholder="Escribe tu pregunta de matemáticas…" autocomplete="off" />
-    <button type="submit">Enviar</button>
+    <input id="input" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off" />
+    <button type="submit">Generar respuestas</button>
   </form>
 </div>
 
@@ -151,8 +151,9 @@
   let messages = [];
 
   const WELCOME =
-    "Hola, soy tu profe de matemáticas.\n" +
-    "Haz cualquier pregunta relacionada (por ejemplo: fracciones, ecuaciones, álgebra, geometría).";
+    "Pega aquí el mensaje que acabas de recibir.\n" +
+    "Respira.\n" +
+    "Te doy 3 respuestas listas para enviar.";
 
   function addMessage(role, text) {
     const div = document.createElement("div");
@@ -163,13 +164,9 @@
   }
 
   function loadChat() {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      messages = JSON.parse(saved);
-      messages.forEach(m => addMessage(m.role, m.content));
-    } else {
-      addMessage("assistant", WELCOME);
-    }
+    localStorage.removeItem(STORAGE_KEY);
+    messages = [];
+    addMessage("assistant", WELCOME);
   }
 
   function saveChat() {
@@ -177,8 +174,9 @@
   }
 
   async function sendMessage(text) {
+    messagesEl.innerHTML = "";
+    messages = [{ role: "user", content: text }];
     addMessage("user", text);
-    messages.push({ role: "user", content: text });
     saveChat();
 
     const res = await fetch(API_URL, {
@@ -215,4 +213,3 @@
 
 </body>
 </html>
-
