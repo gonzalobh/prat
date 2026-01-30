@@ -1768,6 +1768,7 @@ body {
     let questionHistory = { // MODIFICADO
       symptomAsked: false, // MODIFICADO
       durationAsked: false, // MODIFICADO
+      locationAsked: false, // MODIFICADO
       abdominalPainAsked: false, // MODIFICADO
       fluidsAsked: false, // MODIFICADO
       feverAsked: false, // MODIFICADO
@@ -2238,6 +2239,42 @@ function getLastAssistantQuestionText() {
   return assistantText.slice(questionStartIndex, lastQuestionIndex + 1).trim();
 }
 
+function cleanLocationCandidate(candidate) {
+  if (!candidate) return "";
+  const cleaned = candidate
+    .replace(/^(en|al|a la altura de)\s+/i, "")
+    .replace(/^(el|la|los|las)\s+/i, "")
+    .trim()
+    .replace(/\s+/g, " ");
+  const normalized = normalizeText(cleaned);
+  if (!cleaned || normalized.length < 3) return "";
+  if (hasAny(normalized, ["aqui", "ahi", "alla", "no se", "nose"])) return "";
+  return cleaned;
+}
+
+function extractLocationFromText(text) {
+  const normalized = normalizeText(text);
+  let match = normalized.match(/dolor (?:en|de)\s+([a-záéíóúñ0-9\s]{2,60})/);
+  if (match && match[1]) {
+    const cleaned = cleanLocationCandidate(match[1]);
+    if (cleaned) return cleaned;
+  }
+
+  match = normalized.match(/(?:\ben\b|\bal\b|a la altura de)\s+(?:el|la)?\s*([a-záéíóúñ0-9\s]{3,60})/);
+  if (match && match[1]) {
+    const cleaned = cleanLocationCandidate(match[1]);
+    if (cleaned) return cleaned;
+  }
+
+  match = normalized.match(/\b(arriba|abajo|izquierda|derecha)\b/);
+  if (match && match[1]) {
+    const cleaned = cleanLocationCandidate(match[1]);
+    if (cleaned) return cleaned;
+  }
+
+  return "";
+}
+
 function updateClinicalStateFromText(text) {
   const normalized = normalizeText(text);
   if (clinicalState.fever === null && hasAny(normalized, ["fiebre", "temperatura"])) {
@@ -2253,9 +2290,9 @@ function updateClinicalStateFromText(text) {
     }
   }
   if (!clinicalState.location) {
-    const match = normalized.match(/dolor (?:en|de)\s+([a-záéíóúñ\s]{2,40})/);
-    if (match && match[1]) {
-      clinicalState.location = match[1].trim().replace(/\s+/g, " "); // 🔎 actualiza clinicalState
+    const location = extractLocationFromText(text);
+    if (location) {
+      clinicalState.location = location; // 🔎 actualiza clinicalState
     }
   }
 }
@@ -2296,21 +2333,31 @@ function hasAskedKeyQuestion() {
 
 function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
   if (clinicalState.duration === null) {
-    questionHistory.durationAsked = true;
-    return "¿Desde cuándo exactamente tienes este síntoma?";
+    if (!questionHistory.durationAsked) {
+      questionHistory.durationAsked = true;
+      return "¿Desde cuándo exactamente tienes este síntoma?";
+    }
   }
 
   if (clinicalState.location === null) {
-    return "¿Dónde sientes la molestia o el dolor?";
+    if (!questionHistory.locationAsked) {
+      questionHistory.locationAsked = true;
+      return "¿Dónde sientes la molestia o el dolor?";
+    }
   }
 
   if (clinicalState.fever === null) {
-    return "¿Has tenido fiebre?";
+    if (!questionHistory.feverAsked) {
+      questionHistory.feverAsked = true;
+      return "¿Has tenido fiebre?";
+    }
   }
 
   if (clinicalState.pain === null && !hasDiarrheaMentioned()) {
-    questionHistory.abdominalPainAsked = true;
-    return "¿Tienes dolor abdominal?";
+    if (!questionHistory.abdominalPainAsked) {
+      questionHistory.abdominalPainAsked = true;
+      return "¿Tienes dolor abdominal?";
+    }
   }
 
   if (requireKeyQuestion && !questionHistory.abdominalPainAsked) {
@@ -2339,7 +2386,17 @@ function interpretBriefResponse(text) {
 
   updateClinicalStateFromText(text);
 
-  if (wordCount <= 3) {
+  const locationQuestion = hasAny(lastQuestion, ["donde sientes", "donde es", "ubicacion", "ubicación"]);
+
+  if (!clinicalState.location && locationQuestion && hasAny(normalized, ["en", "lado", "abdomen", "estomago", "estómago", "costado", "ingle"])) {
+    const location = extractLocationFromText(text) || cleanLocationCandidate(text);
+    if (location) {
+      clinicalState.location = location; // 🔎 actualiza clinicalState
+      interpretedText = `Ubicación: ${location}.`;
+    }
+  }
+
+  if (!interpretedText && wordCount <= 3) {
     if (hasAny(normalized, ["si", "sí", "claro", "ajá", "aja", "sip"])) {
       if (lastQuestion.includes("fiebre")) {
         clinicalState.fever = true; // 🔎 actualiza clinicalState
@@ -2376,11 +2433,6 @@ function interpretBriefResponse(text) {
         clinicalState.duration = duration; // 🔎 actualiza clinicalState
         interpretedText = `Duración: ${duration}.`;
       }
-    }
-
-    if (!interpretedText && hasAny(lastQuestion, ["donde", "en que parte", "ubicacion"])) {
-      clinicalState.location = text.trim(); // 🔎 actualiza clinicalState
-      interpretedText = `Ubicación: ${text.trim()}.`;
     }
   }
 
@@ -2427,6 +2479,7 @@ function resetConversationState() { // MODIFICADO
   questionHistory = { // MODIFICADO
     symptomAsked: false, // MODIFICADO
     durationAsked: false, // MODIFICADO
+    locationAsked: false, // MODIFICADO
     abdominalPainAsked: false, // MODIFICADO
     fluidsAsked: false, // MODIFICADO
     feverAsked: false, // MODIFICADO
