@@ -1742,6 +1742,7 @@ body {
     let summaryCard = null;
     let pendingSummaryTrigger = false;
     let pendingSummaryData = null;
+    let phase = "apertura";
     let clinicalState = {
       fever: null,
       pain: null,
@@ -1979,6 +1980,10 @@ body {
       initialOptionsShown = true;
       rebuildConversationStateFromHistory(); // MODIFICADO
       rebuildClinicalStateFromHistory();
+      phase = storedMessages.length ? "entrevista" : "apertura";
+      if (conversationState.orientationGiven) {
+        phase = "orientacion";
+      }
       if (messagesContainer) {
         resetMessagesContainer();
         storedMessages.forEach((message) => {
@@ -2055,6 +2060,7 @@ body {
       messages = [];
       storedMessages = [];
       isTyping = false;
+      phase = "apertura";
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
@@ -2104,6 +2110,7 @@ body {
       messages = [];
       storedMessages = [];
       isTyping = false;
+      phase = "apertura";
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
@@ -2249,6 +2256,30 @@ function updateClinicalStateFromText(text) {
       clinicalState.location = match[1].trim().replace(/\s+/g, " "); // 🔎 actualiza clinicalState
     }
   }
+}
+
+function hasMinimumClinicalInfo() {
+  return (
+    clinicalState.location !== null ||
+    clinicalState.duration !== null ||
+    clinicalState.fever !== null
+  );
+}
+
+function nextClinicalQuestion() {
+  if (clinicalState.location === null) {
+    return "¿Dónde sientes la molestia o el dolor?";
+  }
+
+  if (clinicalState.duration === null) {
+    return "¿Desde cuándo tienes este síntoma?";
+  }
+
+  if (clinicalState.fever === null) {
+    return "¿Has tenido fiebre?";
+  }
+
+  return null;
 }
 
 function interpretBriefResponse(text) {
@@ -2465,24 +2496,17 @@ function rebuildClinicalStateFromHistory() {
 }
 
 function isClosingUserMessage(text) {
-  const normalized = normalizeText(text);
-  return hasAny(normalized, [
+  const t = text.toLowerCase().trim();
+  return [
     "gracias",
     "ok",
-    "okay",
-    "entiendo",
-    "entendido",
-    "eso era",
-    "era eso",
     "listo",
+    "eso es todo",
     "perfecto",
     "vale",
-    "no tengo mas preguntas",
-    "no tengo mas dudas",
-    "nada mas",
-    "eso es todo",
-    "no gracias",
-  ]);
+    "entendido",
+    "no gracias"
+  ].includes(t);
 }
 
 function isAssistantClosingMessage(text) {
@@ -3134,6 +3158,10 @@ function maybeRenderSummaryCard(assistantText = "") {
       return messageDiv;
     }
 
+    function addAssistantMessage(content, options = {}) {
+      return appendMessage("assistant", content, { includeInApi: false, ...options });
+    }
+
     function recordMessage(
       role,
       content,
@@ -3275,17 +3303,7 @@ async function sendMessage(text) {
   const isClosing = isClosingUserMessage(sanitizedText);
   pendingSummaryTrigger = pendingSummaryTrigger || isClosing;
 
-  const systemSummary = buildClinicalSystemMessage();
-  if (systemSummary) {
-    recordMessage("system", systemSummary, { includeInStorage: false }); // 🛰️ envía mensaje system invisible
-  }
-
-  if (isClosing && summaryShown) {
-    appendMessage(
-      "assistant",
-      "Perfecto. Si aparece algo nuevo o empeora, consulta.",
-      { includeInApi: false }
-    );
+  const finalizeLocalResponse = () => {
     isTyping = false;
     if (sendButton) {
       sendButton.disabled = false;
@@ -3294,6 +3312,54 @@ async function sendMessage(text) {
       input.placeholder = TEXT.placeholder;
       input.focus();
     }
+  };
+
+  const systemSummary = buildClinicalSystemMessage();
+  if (systemSummary) {
+    recordMessage("system", systemSummary, { includeInStorage: false }); // 🛰️ envía mensaje system invisible
+  }
+
+  if (phase === "apertura") {
+    phase = "entrevista";
+  }
+
+  if (phase === "entrevista") {
+    const question = nextClinicalQuestion();
+    if (question) {
+      addAssistantMessage(question);
+      finalizeLocalResponse();
+      return;
+    }
+    phase = "orientacion";
+  }
+
+  if (isClosingUserMessage(sanitizedText) && phase === "orientacion" && !summaryShown) {
+    phase = "cierre";
+    pendingSummaryTrigger = true;
+  }
+
+  if (phase === "cierre") {
+    if (!summaryShown) {
+      pendingSummaryData = buildLocalSummaryData();
+      renderSummaryCard(pendingSummaryData);
+      pendingSummaryData = null;
+    }
+    finalizeLocalResponse();
+    return;
+  }
+
+  if (phase === "orientacion" && conversationState.orientationGiven) {
+    finalizeLocalResponse();
+    return;
+  }
+
+  if (isClosing && summaryShown) {
+    appendMessage(
+      "assistant",
+      "Perfecto. Si aparece algo nuevo o empeora, consulta.",
+      { includeInApi: false }
+    );
+    finalizeLocalResponse();
     return;
   }
 
@@ -3329,6 +3395,9 @@ async function sendMessage(text) {
       appendMessage("assistant", assistantText);
     } else {
       recordMessage("assistant", assistantText, { includeInStorage: false });
+    }
+    if (phase === "orientacion") {
+      conversationState.orientationGiven = true;
     }
     if (!summaryExtraction.summary && isClosing && !summaryShown) {
       pendingSummaryData = buildLocalSummaryData();
