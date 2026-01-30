@@ -2304,19 +2304,20 @@ function hasPainOrLocationRelevant() {
 
 function updateClinicalStateFromText(text) {
   const normalized = normalizeText(text);
+  const symptomMentioned = conversationState.symptomProvided || Boolean(extractSymptomPhrase(text));
   if (clinicalState.fever === null && hasAny(normalized, ["fiebre", "temperatura"])) {
     clinicalState.fever = !hasAny(normalized, ["sin fiebre", "no tengo fiebre", "no he tenido fiebre"]); // 🔎 actualiza clinicalState
   }
   if (clinicalState.pain === null && normalized.includes("dolor")) {
     clinicalState.pain = !hasAny(normalized, ["sin dolor", "no tengo dolor", "no siento dolor"]); // 🔎 actualiza clinicalState
   }
-  if (!clinicalState.duration) {
+  if (!clinicalState.duration && symptomMentioned) {
     const duration = parseDurationFromText(text);
     if (duration) {
       clinicalState.duration = duration; // 🔎 actualiza clinicalState
     }
   }
-  if (!clinicalState.location) {
+  if (!clinicalState.location && symptomMentioned) {
     const location = extractLocationFromText(text);
     if (location) {
       clinicalState.location = location; // 🔎 actualiza clinicalState
@@ -3340,7 +3341,7 @@ function maybeRenderSummaryCard(assistantText = "") {
       const normalizedLast = normalizeText(lastAssistant);
       const normalizedNext = normalizeText(content);
       if (normalizedLast && normalizedLast === normalizedNext) return null;
-      return addAssistantMessage(content, options);
+      return appendMessage("assistant", content, { includeInApi: true, ...options });
     }
 
     function recordMessage(
@@ -3551,11 +3552,9 @@ async function sendMessage(text) {
   }
 
   if (isClosing && summaryShown) {
-    appendMessage(
-      "assistant",
-      "Perfecto. Si aparece algo nuevo o empeora, consulta.",
-      { includeInApi: false }
-    );
+    addAssistantMessageUnique("Perfecto. Si aparece algo nuevo o empeora, consulta.", {
+      includeInApi: false,
+    });
     finalizeLocalResponse();
     return;
   }
@@ -3593,7 +3592,7 @@ async function sendMessage(text) {
       const finalText = phase === "orientacion"
         ? enforceOrientationResponse(softenedText)
         : softenedText;
-      appendMessage("assistant", finalText);
+      addAssistantMessageUnique(finalText);
     } else {
       recordMessage("assistant", assistantText, { includeInStorage: false });
     }
@@ -3606,7 +3605,7 @@ async function sendMessage(text) {
     maybeRenderSummaryCard(assistantText);
   } catch (error) {
     typingIndicator?.remove();
-    appendMessage("assistant", TEXT.errorMessages.network, { includeInApi: false });
+    addAssistantMessageUnique(TEXT.errorMessages.network, { includeInApi: false });
   } finally {
     isTyping = false;
     if (sendButton) {
