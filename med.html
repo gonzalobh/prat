@@ -904,6 +904,47 @@
       gap: 14px;
     }
 
+    .summary-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .summary-toggle-button {
+      border: 1px solid rgba(201, 221, 182, 0.8);
+      background: rgba(214, 230, 195, 0.7);
+      color: var(--color-ink);
+      border-radius: 999px;
+      font-size: 12px;
+      padding: 6px 14px;
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      transition: var(--transition-base);
+    }
+
+    .summary-toggle-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 8px 18px rgba(31, 42, 68, 0.12);
+    }
+
+    .summary-body {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      transition: max-height 0.45s ease, opacity 0.45s ease;
+      max-height: 800px;
+      opacity: 1;
+    }
+
+    .summary-card.collapsed .summary-body {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      padding: 0;
+    }
+
     .summary-card-label {
       font-size: 12px;
       letter-spacing: 0.14em;
@@ -944,6 +985,62 @@
       font-size: 12px;
       color: var(--color-muted);
       line-height: 1.6;
+    }
+
+    .close-choice-card {
+      align-self: flex-start;
+      width: min(640px, 100%);
+      padding: 20px 22px;
+      border-radius: 22px;
+      background: rgba(255, 255, 255, 0.96);
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      box-shadow: 0 14px 30px rgba(31, 42, 68, 0.12);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .close-choice-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .close-choice-buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .close-choice-button {
+      padding: 10px 16px;
+      border-radius: 999px;
+      border: 1px solid rgba(229, 231, 235, 0.9);
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--color-ink);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: var(--transition-base);
+    }
+
+    .close-choice-button.primary {
+      border-color: rgba(201, 221, 182, 0.8);
+      background: rgba(214, 230, 195, 0.8);
+    }
+
+    .close-choice-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(31, 42, 68, 0.12);
+    }
+
+    .close-choice-reset {
+      font-size: 12px;
+      color: var(--color-muted);
+      text-decoration: underline;
+      cursor: pointer;
+      align-self: flex-start;
     }
 
     body[data-theme="light"] .summary-card {
@@ -1742,18 +1839,36 @@ body {
     let summaryCard = null;
     let pendingSummaryTrigger = false;
     let pendingSummaryData = null;
+    let userRequestedSummary = false;
+    let closeChoiceCard = null;
     let phase = "apertura";
     let clinicalState = {
       fever: null,
       pain: null,
       duration: null,
       location: null,
+      severity: null,
+      progression: null,
+      nausea: null,
+      vomiting: null,
+      appetite: null,
+      bowelChange: null,
+      urinarySymptoms: null,
+      canDrinkFluids: null,
     };
     let sentClinicalState = {
       fever: null,
       pain: null,
       duration: null,
       location: null,
+      severity: null,
+      progression: null,
+      nausea: null,
+      vomiting: null,
+      appetite: null,
+      bowelChange: null,
+      urinarySymptoms: null,
+      canDrinkFluids: null,
     };
     const conversationState = { // MODIFICADO
       symptomProvided: false, // MODIFICADO
@@ -1770,9 +1885,16 @@ body {
       durationAsked: false, // MODIFICADO
       locationAsked: false, // MODIFICADO
       abdominalPainAsked: false, // MODIFICADO
-      fluidsAsked: false, // MODIFICADO
       feverAsked: false, // MODIFICADO
       medicationAsked: false, // MODIFICADO
+      severityAsked: false, // MODIFICADO
+      progressionAsked: false, // MODIFICADO
+      nauseaAsked: false, // MODIFICADO
+      vomitingAsked: false, // MODIFICADO
+      appetiteAsked: false, // MODIFICADO
+      bowelAsked: false, // MODIFICADO
+      urinaryAsked: false, // MODIFICADO
+      canDrinkAsked: false, // MODIFICADO
     }; // MODIFICADO
     let clinicalIntroShown = false; // MODIFICADO
 
@@ -2067,9 +2189,11 @@ body {
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
+      userRequestedSummary = false;
       resetClinicalState();
       resetConversationState(); // MODIFICADO
       clearSummaryCard();
+      clearCloseChoiceCard();
       if (messagesContainer) {
         resetMessagesContainer();
       }
@@ -2117,9 +2241,11 @@ body {
       initialOptionsShown = false;
       summaryShown = false;
       pendingSummaryTrigger = false;
+      userRequestedSummary = false;
       resetClinicalState();
       resetConversationState(); // MODIFICADO
       clearSummaryCard();
+      clearCloseChoiceCard();
       sendButton?.removeAttribute("disabled");
 
       showWelcome();
@@ -2302,6 +2428,80 @@ function hasPainOrLocationRelevant() {
   ]);
 }
 
+function parseSeverityFromText(text) {
+  const normalized = normalizeText(text);
+  const numberMatch = normalized.match(
+    /\b(\d{1,2})\s*(?:\/\s*10|de\s*10)\b/
+  );
+  if (numberMatch) {
+    const value = Number(numberMatch[1]);
+    if (!Number.isNaN(value) && value >= 0 && value <= 10) return value;
+  }
+
+  const intensityMatch = normalized.match(/\b(?:dolor|intensidad)\s*(\d{1,2})\b/);
+  if (intensityMatch) {
+    const value = Number(intensityMatch[1]);
+    if (!Number.isNaN(value) && value >= 0 && value <= 10) return value;
+  }
+
+  if (hasAny(normalized, ["muy fuerte", "insoportable"])) return 9;
+  if (normalized.includes("fuerte")) return 7;
+  if (normalized.includes("moderado")) return 5;
+  if (normalized.includes("leve")) return 2;
+  return null;
+}
+
+function detectProgressionFromText(text) {
+  const normalized = normalizeText(text);
+  if (hasAny(normalized, ["va empeorando", "empeora", "peor"])) return "empeorando";
+  if (hasAny(normalized, ["igual", "lo mismo"])) return "igual";
+  if (hasAny(normalized, ["mejor", "mejorando"])) return "mejorando";
+  return null;
+}
+
+function detectNauseaVomitingFromText(text) {
+  const normalized = normalizeText(text);
+  const nauseaNegated = /(?:sin|no tengo|no he|no he tenido|no presento)\s+(nauseas|nausea|asco)/.test(normalized);
+  const vomitingNegated = /(?:sin|no tengo|no he|no he tenido|no presento)\s+(vomito|vomitos|vomitado|vomitar)/.test(normalized);
+  const nauseaMentioned = hasAny(normalized, ["nausea", "nauseas", "asco"]);
+  const vomitingMentioned = hasAny(normalized, ["vomito", "vomitos", "vomite", "vomitar", "vomitado"]);
+
+  return {
+    nausea: nauseaMentioned ? !nauseaNegated : null,
+    vomiting: vomitingMentioned ? !vomitingNegated : null,
+  };
+}
+
+function detectAppetiteFromText(text) {
+  const normalized = normalizeText(text);
+  if (hasAny(normalized, ["no puedo comer"])) return "no_puedo";
+  if (hasAny(normalized, ["sin apetito", "no tengo hambre", "poco apetito"])) return "disminuido";
+  if (hasAny(normalized, ["apetito normal", "como normal"])) return "normal";
+  return null;
+}
+
+function detectBowelFromText(text) {
+  const normalized = normalizeText(text);
+  if (normalized.includes("diarrea")) return "diarrea";
+  if (hasAny(normalized, ["estrenimiento", "estrenida", "constipado", "constipada"])) return "estrenimiento";
+  if (normalized.includes("normal")) return "normal";
+  return null;
+}
+
+function detectUrinarySymptomsFromText(text) {
+  const normalized = normalizeText(text);
+  if (hasAny(normalized, ["ardor al orinar", "orino seguido", "dolor al orinar", "urgencia"])) return true;
+  if (hasAny(normalized, ["sin molestias al orinar", "no ardor"])) return false;
+  return null;
+}
+
+function detectCanDrinkFromText(text) {
+  const normalized = normalizeText(text);
+  if (hasAny(normalized, ["si puedo tomar liquidos", "tomo agua bien", "puedo tomar liquidos"])) return true;
+  if (hasAny(normalized, ["no puedo tomar", "vomito lo que tomo"])) return false;
+  return null;
+}
+
 function updateClinicalStateFromText(text) {
   const normalized = normalizeText(text);
   const symptomMentioned = conversationState.symptomProvided || Boolean(extractSymptomPhrase(text));
@@ -2323,6 +2523,58 @@ function updateClinicalStateFromText(text) {
       clinicalState.location = location; // 🔎 actualiza clinicalState
     }
   }
+
+  if (clinicalState.severity === null) {
+    const severity = parseSeverityFromText(text);
+    if (severity !== null) {
+      clinicalState.severity = severity;
+    }
+  }
+
+  if (clinicalState.progression === null) {
+    const progression = detectProgressionFromText(text);
+    if (progression) {
+      clinicalState.progression = progression;
+    }
+  }
+
+  if (clinicalState.nausea === null || clinicalState.vomiting === null) {
+    const { nausea, vomiting } = detectNauseaVomitingFromText(text);
+    if (clinicalState.nausea === null && nausea !== null) {
+      clinicalState.nausea = nausea;
+    }
+    if (clinicalState.vomiting === null && vomiting !== null) {
+      clinicalState.vomiting = vomiting;
+    }
+  }
+
+  if (clinicalState.appetite === null) {
+    const appetite = detectAppetiteFromText(text);
+    if (appetite) {
+      clinicalState.appetite = appetite;
+    }
+  }
+
+  if (clinicalState.bowelChange === null) {
+    const bowel = detectBowelFromText(text);
+    if (bowel) {
+      clinicalState.bowelChange = bowel;
+    }
+  }
+
+  if (clinicalState.urinarySymptoms === null) {
+    const urinary = detectUrinarySymptomsFromText(text);
+    if (urinary !== null) {
+      clinicalState.urinarySymptoms = urinary;
+    }
+  }
+
+  if (clinicalState.canDrinkFluids === null) {
+    const canDrink = detectCanDrinkFromText(text);
+    if (canDrink !== null) {
+      clinicalState.canDrinkFluids = canDrink;
+    }
+  }
 }
 
 function hasMinimumClinicalInfo() {
@@ -2342,24 +2594,85 @@ function hasDiarrheaMentioned() {
   return userMessages.some((message) => normalizeText(message).includes("diarrea"));
 }
 
-function hasSufficientClinicalInfo() {
-  let count = 0;
-  if (clinicalState.location) count++;
-  if (clinicalState.duration) count++;
-  if (clinicalState.fever !== null) count++;
-  if (clinicalState.pain !== null || hasDiarrheaMentioned()) count++;
-  return count >= 3;
-}
-
-function hasAskedKeyQuestion() {
+function isAbdominalContext() {
+  const symptom = normalizeText(getSymptomFromHistory());
+  const userMessages = getUserMessagesForSummary().join(" ");
+  const normalized = normalizeText(`${symptom} ${userMessages}`);
+  const location = normalizeText(clinicalState.location || "");
+  const hasDirectional = hasAny(location, ["arriba", "abajo", "derecho", "izquierdo"]);
+  const hasDolor = normalized.includes("dolor") || clinicalState.pain === true;
   return (
-    questionHistory.durationAsked ||
-    questionHistory.abdominalPainAsked ||
-    questionHistory.fluidsAsked
+    hasAny(normalized, ["abdomen", "abdominal", "estomago", "barriga", "costado", "ingle"]) ||
+    (hasDirectional && hasDolor) ||
+    hasDiarrheaMentioned() ||
+    clinicalState.vomiting === true
   );
 }
 
+function interviewCompletenessScore() {
+  return {
+    hasDuration: Boolean(clinicalState.duration),
+    hasLocation: Boolean(clinicalState.location),
+    hasFeverKnown: clinicalState.fever !== null,
+    hasPainKnown: clinicalState.pain !== null,
+    hasSeverity: clinicalState.severity !== null,
+    hasProgression: clinicalState.progression !== null,
+    hasNauseaKnown: clinicalState.nausea !== null,
+    hasVomitingKnown: clinicalState.vomiting !== null,
+    hasCanDrinkKnown: clinicalState.canDrinkFluids !== null,
+    hasBowelKnown: clinicalState.bowelChange !== null,
+    hasUrinaryKnown: clinicalState.urinarySymptoms !== null,
+  };
+}
+
+function hasSufficientClinicalInfo() {
+  if (!conversationState.symptomProvided) return false;
+  const score = interviewCompletenessScore();
+  const baseReady =
+    score.hasDuration &&
+    (score.hasFeverKnown || score.hasPainKnown || score.hasLocation) &&
+    (score.hasSeverity || score.hasProgression);
+
+  if (!isAbdominalContext()) {
+    return baseReady;
+  }
+
+  const hasAbdominalExtras =
+    score.hasNauseaKnown || score.hasVomitingKnown || score.hasBowelKnown;
+  if (!score.hasDuration || !score.hasLocation || !score.hasFeverKnown) return false;
+  if (!score.hasSeverity || !score.hasProgression) return false;
+  if (!hasAbdominalExtras) return false;
+  if (
+    clinicalState.vomiting === true ||
+    clinicalState.nausea === true ||
+    clinicalState.fever === true
+  ) {
+    return score.hasCanDrinkKnown;
+  }
+  return true;
+}
+
 function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
+  const MAX_FOLLOWUPS = 4;
+  const followupKeys = [
+    "durationAsked",
+    "locationAsked",
+    "feverAsked",
+    "abdominalPainAsked",
+    "severityAsked",
+    "progressionAsked",
+    "nauseaAsked",
+    "vomitingAsked",
+    "appetiteAsked",
+    "bowelAsked",
+    "urinaryAsked",
+    "canDrinkAsked",
+  ];
+  const followupsAsked = followupKeys.reduce((count, key) => {
+    return questionHistory[key] ? count + 1 : count;
+  }, 0);
+  if (followupsAsked >= MAX_FOLLOWUPS) return null;
+
   if (!conversationState.symptomProvided) {
     if (!questionHistory.symptomAsked) {
       questionHistory.symptomAsked = true;
@@ -2373,6 +2686,43 @@ function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
     return "¿Desde cuándo empezó (o desde cuándo lo notas)?";
   }
 
+  if (isAbdominalContext()) {
+    if (clinicalState.location === null && !questionHistory.locationAsked) {
+      questionHistory.locationAsked = true;
+      return "¿En qué parte lo sientes exactamente? (por ejemplo: lado derecho/izquierdo, arriba/abajo)";
+    }
+    if (clinicalState.fever === null && !questionHistory.feverAsked) {
+      questionHistory.feverAsked = true;
+      return "¿Has tenido fiebre?";
+    }
+    if (clinicalState.severity === null && !questionHistory.severityAsked) {
+      questionHistory.severityAsked = true;
+      return "En una escala de 0 a 10, ¿qué intensidad tiene el dolor?";
+    }
+    if (clinicalState.progression === null && !questionHistory.progressionAsked) {
+      questionHistory.progressionAsked = true;
+      return "¿Ha ido empeorando, está igual, o va mejorando?";
+    }
+    if ((clinicalState.nausea === null || clinicalState.vomiting === null) && !questionHistory.nauseaAsked) {
+      questionHistory.nauseaAsked = true;
+      questionHistory.vomitingAsked = true;
+      return "¿Has tenido náuseas o vómitos?";
+    }
+    if (clinicalState.bowelChange === null && !questionHistory.bowelAsked) {
+      questionHistory.bowelAsked = true;
+      return "¿Diarrea o estreñimiento, o deposiciones normales?";
+    }
+    if (clinicalState.urinarySymptoms === null && !questionHistory.urinaryAsked) {
+      questionHistory.urinaryAsked = true;
+      return "¿Ardor al orinar o ganas muy frecuentes?";
+    }
+    if (clinicalState.canDrinkFluids === null && !questionHistory.canDrinkAsked) {
+      questionHistory.canDrinkAsked = true;
+      return "¿Has podido tolerar líquidos?";
+    }
+    return null;
+  }
+
   if (hasPainOrLocationRelevant() && clinicalState.location === null && !questionHistory.locationAsked) {
     questionHistory.locationAsked = true;
     return "¿En qué parte lo sientes exactamente? (por ejemplo: lado derecho/izquierdo, arriba/abajo)";
@@ -2383,18 +2733,57 @@ function nextClinicalQuestion({ requireKeyQuestion = false } = {}) {
     return "¿Has tenido fiebre?";
   }
 
-  if (clinicalState.pain === null && !hasDiarrheaMentioned() && !questionHistory.abdominalPainAsked) {
-    questionHistory.abdominalPainAsked = true;
-    return "¿Tienes dolor abdominal?";
+  if (clinicalState.severity === null && !questionHistory.severityAsked) {
+    questionHistory.severityAsked = true;
+    return "En una escala de 0 a 10, ¿qué intensidad tiene el dolor?";
   }
 
-  if (requireKeyQuestion && !questionHistory.abdominalPainAsked) {
-    questionHistory.abdominalPainAsked = true;
-    return "¿Tienes dolor abdominal?";
+  if (clinicalState.progression === null && !questionHistory.progressionAsked) {
+    questionHistory.progressionAsked = true;
+    return "¿Ha ido empeorando, está igual, o va mejorando?";
   }
 
-  if (requireKeyQuestion && !questionHistory.fluidsAsked) {
-    questionHistory.fluidsAsked = true;
+  const extraQuestions = [
+    {
+      condition: () => clinicalState.nausea === null || clinicalState.vomiting === null,
+      flag: "nauseaAsked",
+      value: "¿Has tenido náuseas o vómitos?",
+    },
+    {
+      condition: () => clinicalState.appetite === null,
+      flag: "appetiteAsked",
+      value: "¿Cómo ha estado el apetito: normal, disminuido o no puedes comer?",
+    },
+    {
+      condition: () => clinicalState.bowelChange === null,
+      flag: "bowelAsked",
+      value: "¿Diarrea o estreñimiento, o deposiciones normales?",
+    },
+    {
+      condition: () => clinicalState.urinarySymptoms === null,
+      flag: "urinaryAsked",
+      value: "¿Ardor al orinar o ganas muy frecuentes?",
+    },
+  ];
+
+  const extrasAskedCount = extraQuestions.reduce((count, item) => {
+    return questionHistory[item.flag] ? count + 1 : count;
+  }, 0);
+
+  if (extrasAskedCount < 2) {
+    for (const extra of extraQuestions) {
+      if (extra.condition() && !questionHistory[extra.flag]) {
+        questionHistory[extra.flag] = true;
+        if (extra.flag === "nauseaAsked") {
+          questionHistory.vomitingAsked = true;
+        }
+        return extra.value;
+      }
+    }
+  }
+
+  if (requireKeyQuestion && clinicalState.canDrinkFluids === null && !questionHistory.canDrinkAsked) {
+    questionHistory.canDrinkAsked = true;
     return "¿Has podido tolerar líquidos?";
   }
 
@@ -2436,6 +2825,15 @@ function interpretBriefResponse(text) {
       } else if (lastQuestion.includes("dolor")) {
         clinicalState.pain = true; // 🔎 actualiza clinicalState
         interpretedText = "Dolor: sí.";
+      } else if (lastQuestion.includes("nausea") || lastQuestion.includes("náusea")) {
+        clinicalState.nausea = true; // 🔎 actualiza clinicalState
+        interpretedText = "Náuseas: sí.";
+      } else if (lastQuestion.includes("vomit")) {
+        clinicalState.vomiting = true; // 🔎 actualiza clinicalState
+        interpretedText = "Vómitos: sí.";
+      } else if (lastQuestion.includes("tolerar liquidos") || lastQuestion.includes("tolerar líquidos")) {
+        clinicalState.canDrinkFluids = true; // 🔎 actualiza clinicalState
+        interpretedText = "Líquidos: sí.";
       }
     }
 
@@ -2446,6 +2844,15 @@ function interpretBriefResponse(text) {
       } else if (lastQuestion.includes("dolor")) {
         clinicalState.pain = false; // 🔎 actualiza clinicalState
         interpretedText = "Dolor: no.";
+      } else if (lastQuestion.includes("nausea") || lastQuestion.includes("náusea")) {
+        clinicalState.nausea = false; // 🔎 actualiza clinicalState
+        interpretedText = "Náuseas: no.";
+      } else if (lastQuestion.includes("vomit")) {
+        clinicalState.vomiting = false; // 🔎 actualiza clinicalState
+        interpretedText = "Vómitos: no.";
+      } else if (lastQuestion.includes("tolerar liquidos") || lastQuestion.includes("tolerar líquidos")) {
+        clinicalState.canDrinkFluids = false; // 🔎 actualiza clinicalState
+        interpretedText = "Líquidos: no.";
       }
     }
 
@@ -2494,6 +2901,38 @@ function buildClinicalSystemMessage() {
     parts.push(`localización ${clinicalState.location}`);
     sentClinicalState.location = clinicalState.location;
   }
+  if (clinicalState.severity !== null && clinicalState.severity !== sentClinicalState.severity) {
+    parts.push(`intensidad aprox ${clinicalState.severity}/10`);
+    sentClinicalState.severity = clinicalState.severity;
+  }
+  if (clinicalState.progression && clinicalState.progression !== sentClinicalState.progression) {
+    parts.push(`evolución: ${clinicalState.progression}`);
+    sentClinicalState.progression = clinicalState.progression;
+  }
+  if (clinicalState.nausea !== null && clinicalState.nausea !== sentClinicalState.nausea) {
+    parts.push(`náuseas: ${clinicalState.nausea ? "sí" : "no"}`);
+    sentClinicalState.nausea = clinicalState.nausea;
+  }
+  if (clinicalState.vomiting !== null && clinicalState.vomiting !== sentClinicalState.vomiting) {
+    parts.push(`vómitos: ${clinicalState.vomiting ? "sí" : "no"}`);
+    sentClinicalState.vomiting = clinicalState.vomiting;
+  }
+  if (clinicalState.appetite && clinicalState.appetite !== sentClinicalState.appetite) {
+    parts.push(`apetito ${clinicalState.appetite}`);
+    sentClinicalState.appetite = clinicalState.appetite;
+  }
+  if (clinicalState.bowelChange && clinicalState.bowelChange !== sentClinicalState.bowelChange) {
+    parts.push(`deposiciones ${clinicalState.bowelChange}`);
+    sentClinicalState.bowelChange = clinicalState.bowelChange;
+  }
+  if (clinicalState.urinarySymptoms !== null && clinicalState.urinarySymptoms !== sentClinicalState.urinarySymptoms) {
+    parts.push(`síntomas urinarios: ${clinicalState.urinarySymptoms ? "sí" : "no"}`);
+    sentClinicalState.urinarySymptoms = clinicalState.urinarySymptoms;
+  }
+  if (clinicalState.canDrinkFluids !== null && clinicalState.canDrinkFluids !== sentClinicalState.canDrinkFluids) {
+    parts.push(`tolera líquidos: ${clinicalState.canDrinkFluids ? "sí" : "no"}`);
+    sentClinicalState.canDrinkFluids = clinicalState.canDrinkFluids;
+  }
 
   if (!parts.length) return "";
   return `Estado clínico conocido: ${parts.join(", ")}.`;
@@ -2513,9 +2952,16 @@ function resetConversationState() { // MODIFICADO
     durationAsked: false, // MODIFICADO
     locationAsked: false, // MODIFICADO
     abdominalPainAsked: false, // MODIFICADO
-    fluidsAsked: false, // MODIFICADO
     feverAsked: false, // MODIFICADO
     medicationAsked: false, // MODIFICADO
+    severityAsked: false, // MODIFICADO
+    progressionAsked: false, // MODIFICADO
+    nauseaAsked: false, // MODIFICADO
+    vomitingAsked: false, // MODIFICADO
+    appetiteAsked: false, // MODIFICADO
+    bowelAsked: false, // MODIFICADO
+    urinaryAsked: false, // MODIFICADO
+    canDrinkAsked: false, // MODIFICADO
   }; // MODIFICADO
   clinicalIntroShown = false; // MODIFICADO
 } // MODIFICADO
@@ -2526,14 +2972,31 @@ function resetClinicalState() {
     pain: null,
     duration: null,
     location: null,
+    severity: null,
+    progression: null,
+    nausea: null,
+    vomiting: null,
+    appetite: null,
+    bowelChange: null,
+    urinarySymptoms: null,
+    canDrinkFluids: null,
   };
   sentClinicalState = {
     fever: null,
     pain: null,
     duration: null,
     location: null,
+    severity: null,
+    progression: null,
+    nausea: null,
+    vomiting: null,
+    appetite: null,
+    bowelChange: null,
+    urinarySymptoms: null,
+    canDrinkFluids: null,
   };
   pendingSummaryData = null;
+  userRequestedSummary = false;
 }
 
 function detectDuration(text) { // MODIFICADO
@@ -2717,6 +3180,15 @@ function clearSummaryCard() {
   }
   summaryShown = false;
   pendingSummaryData = null;
+  userRequestedSummary = false;
+  pendingSummaryTrigger = false;
+}
+
+function clearCloseChoiceCard() {
+  if (closeChoiceCard) {
+    closeChoiceCard.remove();
+    closeChoiceCard = null;
+  }
 }
 
 function getLastUserMessage({ includeClosing = false } = {}) {
@@ -2945,16 +3417,40 @@ function softenAssistantText(text) {
   );
 }
 
+function needsSafetyClarifier() {
+  return (
+    isAbdominalContext() &&
+    (clinicalState.severity === null ||
+      clinicalState.progression === null ||
+      (clinicalState.vomiting === true && clinicalState.canDrinkFluids === null))
+  );
+}
+
 function enforceOrientationResponse(text) {
   const sentences = (text || "")
     .split(/(?<=[.!?])\s+/)
     .map((sentence) => sentence.trim())
     .filter(Boolean);
-  const withoutQuestions = sentences.filter((sentence) => !messageHasQuestion(sentence));
-  if (!withoutQuestions.length) {
+  const questions = sentences.filter((sentence) => messageHasQuestion(sentence));
+  const statements = sentences.filter((sentence) => !messageHasQuestion(sentence));
+  let allowedQuestion = "";
+
+  if (needsSafetyClarifier() && questions.length) {
+    const candidate = questions[0];
+    if (candidate.length <= 120 || text.trim().endsWith(candidate)) {
+      allowedQuestion = candidate;
+    }
+  }
+
+  const finalParts = statements.slice();
+  if (allowedQuestion) {
+    finalParts.push(allowedQuestion);
+  }
+
+  if (!finalParts.length) {
     return "Con la información disponible, la orientación general es observar la evolución y consultar si hay señales de alarma.";
   }
-  return withoutQuestions.join(" ");
+  return finalParts.join(" ");
 }
 
 function capitalizeSentence(text) {
@@ -3002,11 +3498,39 @@ function buildLocalSummaryData() {
   };
 }
 
-function renderSummaryCard(summary) {
+function renderSummaryCardCollapsed(summary) {
   if (!messagesContainer || summaryShown || !summary) return;
 
   const card = document.createElement("section");
-  card.className = "summary-card";
+  card.className = "summary-card collapsed";
+
+  const header = document.createElement("div");
+  header.className = "summary-card-header";
+
+  const headerText = document.createElement("div");
+
+  const label = document.createElement("div");
+  label.className = "summary-card-label";
+  label.textContent = "Resumen clínico";
+
+  const title = document.createElement("div");
+  title.className = "summary-card-title";
+  title.textContent = "Resumen clínico";
+
+  headerText.appendChild(label);
+  headerText.appendChild(title);
+
+  const toggleButton = document.createElement("button");
+  toggleButton.type = "button";
+  toggleButton.className = "summary-toggle-button";
+  toggleButton.textContent = "Expandir";
+
+  header.appendChild(headerText);
+  header.appendChild(toggleButton);
+  card.appendChild(header);
+
+  const body = document.createElement("div");
+  body.className = "summary-body";
 
   const sections = [
     { title: "Resumen", text: summary.resumen },
@@ -3029,8 +3553,10 @@ function renderSummaryCard(summary) {
 
     block.appendChild(heading);
     block.appendChild(paragraph);
-    card.appendChild(block);
+    body.appendChild(block);
   });
+
+  card.appendChild(body);
 
   const disclaimer = document.createElement("p");
   disclaimer.className = "summary-disclaimer";
@@ -3038,19 +3564,89 @@ function renderSummaryCard(summary) {
     "Este resumen es solo orientativo y no reemplaza una evaluación médica.";
   card.appendChild(disclaimer);
 
+  toggleButton.addEventListener("click", () => {
+    const isCollapsed = card.classList.toggle("collapsed");
+    toggleButton.textContent = isCollapsed ? "Expandir" : "Contraer";
+  });
+
   summaryCard = card;
   summaryShown = true;
   messagesContainer.appendChild(card);
   scrollMessagesToBottom();
 }
 
-function maybeRenderSummaryCard(assistantText = "") {
-  if (summaryShown || !pendingSummaryData) return;
-  if (pendingSummaryTrigger || !messageHasQuestion(assistantText)) {
-    renderSummaryCard(pendingSummaryData);
+function maybeRenderSummaryCard() {
+  if (!userRequestedSummary || summaryShown || !pendingSummaryData) return;
+  renderSummaryCardCollapsed(pendingSummaryData);
+  pendingSummaryData = null;
+  pendingSummaryTrigger = false;
+}
+
+function renderCloseChoiceCard() {
+  if (!messagesContainer || closeChoiceCard) return;
+  if (summaryShown) return;
+
+  const card = document.createElement("section");
+  card.className = "close-choice-card";
+
+  const title = document.createElement("div");
+  title.className = "close-choice-title";
+  title.textContent = "¿Quieres un resumen clínico y próximos pasos?";
+
+  const buttons = document.createElement("div");
+  buttons.className = "close-choice-buttons";
+
+  const summaryButton = document.createElement("button");
+  summaryButton.type = "button";
+  summaryButton.className = "close-choice-button primary";
+  summaryButton.textContent = "Ver resumen";
+
+  const continueButton = document.createElement("button");
+  continueButton.type = "button";
+  continueButton.className = "close-choice-button";
+  continueButton.textContent = "Seguir conversando";
+
+  buttons.appendChild(summaryButton);
+  buttons.appendChild(continueButton);
+
+  const resetLink = document.createElement("button");
+  resetLink.type = "button";
+  resetLink.className = "close-choice-reset";
+  resetLink.textContent = "Reiniciar";
+
+  summaryButton.addEventListener("click", () => {
+    userRequestedSummary = true;
+    if (!pendingSummaryData) {
+      pendingSummaryData = buildLocalSummaryData();
+    }
+    renderSummaryCardCollapsed(pendingSummaryData);
     pendingSummaryData = null;
-    pendingSummaryTrigger = false;
-  }
+    summaryShown = true;
+    clearCloseChoiceCard();
+  });
+
+  continueButton.addEventListener("click", () => {
+    clearCloseChoiceCard();
+    addAssistantMessageUnique(
+      "Perfecto. ¿Qué dato te falta contar o qué es lo que más te preocupa ahora?",
+      { includeInApi: false }
+    );
+    phase = "entrevista";
+    conversationState.orientationGiven = false;
+  });
+
+  resetLink.addEventListener("click", () => {
+    clearCloseChoiceCard();
+    handleChatReset();
+  });
+
+  card.appendChild(title);
+  card.appendChild(buttons);
+  card.appendChild(resetLink);
+
+  closeChoiceCard = card;
+  messagesContainer.appendChild(card);
+  scrollMessagesToBottom();
 }
 
 
@@ -3411,6 +4007,16 @@ function buildOrientationMessage() { // MODIFICADO
   ); // MODIFICADO
 } // MODIFICADO
 
+function buildOrientationFormatSystemMessage() {
+  return `FORMATO OBLIGATORIO (responde en español de Chile, tuteo profesional, sin diagnósticos definitivos):
+1) "Lo que entiendo:" 1–2 líneas.
+2) "Qué podría calzar:" 2–3 posibilidades con probabilidad (frecuente primero).
+3) "Qué haría ahora:" 3 pasos simples, sin dosis.
+4) "Señales de alarma:" lista corta (máx 5).
+5) "Cierre:" 1 línea + ofrecer resumen. 
+Reglas: no más de UNA pregunta, y solo si es necesaria para seguridad.`;
+}
+
 function buildAssistantReply() { // MODIFICADO
   if (conversationState.conversationClosed) { // MODIFICADO
     return "Con lo que me has contado, ya tengo una orientación bastante clara. Si aparece algo nuevo o empeora, consulta."; // MODIFICADO
@@ -3516,39 +4122,27 @@ async function sendMessage(text) {
   }
 
   if (phase === "entrevista") {
-    const earlyInterview = isEarlyInterviewPhase();
     const sufficientInfo = hasSufficientClinicalInfo();
-    const keyQuestionAsked = hasAskedKeyQuestion();
-    const requiresInterview = earlyInterview || !sufficientInfo || !keyQuestionAsked;
-    if (requiresInterview) {
-      const question = nextClinicalQuestion({ requireKeyQuestion: !keyQuestionAsked || earlyInterview });
-      const fallbackQuestion = "¿Hay algún otro síntoma importante que deba saber?";
-      addAssistantMessageUnique(question || fallbackQuestion);
-      finalizeLocalResponse();
-      return;
+    if (!sufficientInfo) {
+      const question = nextClinicalQuestion();
+      if (question) {
+        addAssistantMessageUnique(question);
+        finalizeLocalResponse();
+        return;
+      }
     }
     phase = "orientacion";
   }
 
-  if (isClosingUserMessage(sanitizedText) && phase === "orientacion" && !summaryShown) {
-    phase = "cierre";
-    pendingSummaryTrigger = true;
-  }
-
-  if (phase === "cierre") {
-    if (!summaryShown) {
-      addAssistantMessageUnique("Gracias, aquí tienes el resumen clínico.");
-      pendingSummaryData = buildLocalSummaryData();
-      renderSummaryCard(pendingSummaryData);
-      pendingSummaryData = null;
-    }
-    finalizeLocalResponse();
-    return;
-  }
-
   if (phase === "orientacion" && conversationState.orientationGiven) {
-    finalizeLocalResponse();
-    return;
+    if (isClosingUserMessage(sanitizedText)) {
+      renderCloseChoiceCard();
+      finalizeLocalResponse();
+      return;
+    }
+    clearCloseChoiceCard();
+    phase = "entrevista";
+    conversationState.orientationGiven = false;
   }
 
   if (isClosing && summaryShown) {
@@ -3565,6 +4159,9 @@ async function sendMessage(text) {
   }
 
   try {
+    if (phase === "orientacion") {
+      recordMessage("system", buildOrientationFormatSystemMessage(), { includeInStorage: false });
+    }
     const response = await fetch(API_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -3598,11 +4195,12 @@ async function sendMessage(text) {
     }
     if (phase === "orientacion") {
       conversationState.orientationGiven = true;
+      renderCloseChoiceCard();
     }
     if (!summaryExtraction.summary && isClosing && !summaryShown) {
       pendingSummaryData = buildLocalSummaryData();
     }
-    maybeRenderSummaryCard(assistantText);
+    maybeRenderSummaryCard();
   } catch (error) {
     typingIndicator?.remove();
     addAssistantMessageUnique(TEXT.errorMessages.network, { includeInApi: false });
