@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>ReplyFast</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Responde mensajes difíciles en segundos. Pega el mensaje y recibe respuestas listas." />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f7f7f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+    }
+
+    .chat-container {
+      width: 100%;
+      max-width: 720px;
+      height: 90vh;
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.12);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .messages {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 14px 18px;
+      border-radius: 16px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+    }
+
+    .assistant {
+      background: #f1f1f1;
+      align-self: flex-start;
+    }
+
+    .option-block + .option-block {
+      margin-top: 12px;
+    }
+
+    .user {
+      background: #dbeafe;
+      align-self: flex-end;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      padding: 14px;
+      border-top: 1px solid #e5e7eb;
+      gap: 10px;
+    }
+
+    .context-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .context-button {
+      padding: 6px 12px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #111;
+      cursor: pointer;
+      font-size: 14px;
+    }
+
+    .context-button.active {
+      background: #2563eb;
+      color: #fff;
+      border-color: #2563eb;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    textarea {
+      flex: 1;
+      padding: 12px 16px;
+      font-size: 16px;
+      border-radius: 18px;
+      border: 1px solid #d1d5db;
+      outline: none;
+      resize: none;
+      line-height: 1.5;
+      min-height: 52px;
+    }
+
+    button {
+      padding: 12px 18px;
+      border-radius: 999px;
+      border: none;
+      background: #2563eb;
+      color: #fff;
+      cursor: pointer;
+      font-size: 15px;
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    .menu-wrapper {
+      position: absolute;
+      top: 14px;
+      right: 18px;
+    }
+
+    .menu-button {
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+    }
+
+    .menu {
+      position: absolute;
+      right: 0;
+      margin-top: 8px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 8px;
+      display: none;
+    }
+
+    .menu.open {
+      display: block;
+    }
+
+    .menu button {
+      background: none;
+      color: #111;
+      width: 100%;
+      text-align: left;
+      padding: 8px;
+    }
+
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .option-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .copy-button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 2px;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #2563eb;
+      margin-left: 8px;
+    }
+
+    .option-text {
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+
+<div class="chat-container">
+  <div class="menu-wrapper">
+    <button class="menu-button" id="menuBtn">⋯</button>
+    <div class="menu" id="menu">
+      <button id="resetBtn">↺ Reiniciar chat</button>
+    </div>
+  </div>
+
+  <div class="messages" id="messages"></div>
+
+  <form class="input-container" id="form">
+    <div class="context-selector" id="contextSelector">
+      <button type="button" class="context-button active" data-context="General">General</button>
+      <button type="button" class="context-button" data-context="Trabajo">Trabajo</button>
+      <button type="button" class="context-button" data-context="Amor">Amor</button>
+      <button type="button" class="context-button" data-context="Familia">Familia</button>
+      <button type="button" class="context-button" data-context="Amistad">Amistad</button>
+    </div>
+    <div class="input-row">
+      <textarea id="input" rows="2" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off"></textarea>
+      <button type="submit">Generar respuestas</button>
+    </div>
+  </form>
+</div>
+
+<script>
+  const API_URL = "https://hotel-chat-proxy.vercel.app/api/t2";
+  const STORAGE_KEY = "t2-chat-history";
+
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const menuBtn = document.getElementById("menuBtn");
+  const menu = document.getElementById("menu");
+  const resetBtn = document.getElementById("resetBtn");
+  const contextSelector = document.getElementById("contextSelector");
+  const contextButtons = contextSelector.querySelectorAll(".context-button");
+  const submitButton = form.querySelector("button[type='submit']");
+
+  let messages = [];
+  let currentContext = "General";
+  let isLoading = false;
+
+  const WELCOME =
+    "Pega aquí el mensaje que acabas de recibir.\n" +
+    "Respira.\n" +
+    "Te doy 3 respuestas listas para enviar.";
+
+  function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addAssistantOptions(options) {
+    const subtitles = ["Suave", "Intermedia", "Firme"];
+    const div = document.createElement("div");
+    div.className = "message assistant";
+    const list = document.createElement("div");
+    list.className = "option-list";
+    options.forEach((option, index) => {
+      const optionDiv = document.createElement("div");
+      optionDiv.className = "option-block";
+      const header = document.createElement("div");
+      header.className = "option-header";
+
+      const title = document.createElement("div");
+      title.className = "option-title";
+      title.textContent = `Opción ${index + 1}`;
+
+      const subtitle = document.createElement("span");
+      subtitle.className = "option-subtitle";
+      subtitle.textContent = subtitles[index] || "";
+      title.appendChild(subtitle);
+
+      const actions = document.createElement("div");
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.className = "copy-button";
+      copyButton.setAttribute("aria-label", "Copiar respuesta");
+      copyButton.textContent = "📋";
+      actions.appendChild(copyButton);
+
+      header.appendChild(title);
+      header.appendChild(actions);
+
+      const text = document.createElement("div");
+      text.className = "option-text";
+      text.textContent = option;
+
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(option);
+          const feedback = document.createElement("span");
+          feedback.className = "copy-feedback";
+          feedback.textContent = "Copiado";
+          actions.appendChild(feedback);
+          setTimeout(() => feedback.remove(), 1200);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      optionDiv.appendChild(header);
+      optionDiv.appendChild(text);
+      list.appendChild(optionDiv);
+    });
+    div.appendChild(list);
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function splitOptions(answer) {
+    const labels = ["opción 1", "opción 2", "opción 3"];
+    const lower = answer.toLowerCase();
+    const indices = labels.map(label => lower.indexOf(label));
+    if (indices.some(index => index === -1)) {
+      return [answer.trim()];
+    }
+    if (!(indices[0] < indices[1] && indices[1] < indices[2])) {
+      return [answer.trim()];
+    }
+    return labels.map((label, index) => {
+      const start = indices[index];
+      const end = index < indices.length - 1 ? indices[index + 1] : answer.length;
+      const slice = answer.slice(start, end);
+      const match = slice.match(/opción\s*\d+\s*:?\s*/i);
+      return slice.slice(match ? match[0].length : 0).trim();
+    });
+  }
+
+  function setLoading(state) {
+    isLoading = state;
+    submitButton.disabled = state;
+    submitButton.textContent = state ? "Generando…" : "Generar respuestas";
+  }
+
+  function loadChat() {
+    localStorage.removeItem(STORAGE_KEY);
+    messages = [];
+    addMessage("assistant", WELCOME);
+  }
+
+  function saveChat() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
+  }
+
+  function setContext(context) {
+    currentContext = context;
+    contextButtons.forEach(button => {
+      button.classList.toggle("active", button.dataset.context === context);
+    });
+  }
+
+  contextButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      setContext(button.dataset.context);
+    });
+  });
+
+  async function sendMessage(text) {
+    const payloadFinal = `[Contexto: ${currentContext}]\n${text}`;
+    messagesEl.innerHTML = "";
+    messages = [{ role: "user", content: payloadFinal }];
+    addMessage("user", text);
+    saveChat();
+
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages })
+      });
+
+      const rawText = await res.text();
+      let answerText = rawText;
+      try {
+        const data = JSON.parse(rawText);
+        if (data && typeof data.answer === "string") {
+          answerText = data.answer;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+
+      const options = splitOptions(answerText || "");
+      addAssistantOptions(options);
+      messages.push({ role: "assistant", content: answerText });
+      saveChat();
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    if (isLoading) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    input.style.height = "";
+    sendMessage(text);
+  });
+
+  function autoGrowTextarea() {
+    const styles = getComputedStyle(input);
+    const lineHeight = parseFloat(styles.lineHeight) || 24;
+    const maxHeight = lineHeight * 8;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+  }
+
+  input.addEventListener("input", autoGrowTextarea);
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  autoGrowTextarea();
+
+  menuBtn.onclick = () => menu.classList.toggle("open");
+  resetBtn.onclick = () => {
+    localStorage.removeItem(STORAGE_KEY);
+    messages = [];
+    messagesEl.innerHTML = "";
+    addMessage("assistant", WELCOME);
+    setContext("General");
+    menu.classList.remove("open");
+  };
+
+  loadChat();
+</script>
+
+</body>
+</html>
