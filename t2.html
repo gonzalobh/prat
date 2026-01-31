@@ -95,13 +95,16 @@
       gap: 10px;
     }
 
-    input {
+    textarea {
       flex: 1;
       padding: 12px 16px;
       font-size: 16px;
-      border-radius: 999px;
+      border-radius: 18px;
       border: 1px solid #d1d5db;
       outline: none;
+      resize: none;
+      line-height: 1.5;
+      min-height: 52px;
     }
 
     button {
@@ -154,6 +157,56 @@
       text-align: left;
       padding: 8px;
     }
+
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-block {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+    }
+
+    .option-subtitle {
+      font-size: 12px;
+      color: #6b7280;
+      font-weight: 500;
+    }
+
+    .copy-button {
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 18px;
+      padding: 2px;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #2563eb;
+      margin-left: 8px;
+    }
+
+    .option-text {
+      white-space: pre-wrap;
+    }
   </style>
 </head>
 <body>
@@ -177,7 +230,7 @@
       <button type="button" class="context-button" data-context="Amistad">Amistad</button>
     </div>
     <div class="input-row">
-      <input id="input" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off" />
+      <textarea id="input" rows="2" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off"></textarea>
       <button type="submit">Generar respuestas</button>
     </div>
   </form>
@@ -215,35 +268,79 @@
   }
 
   function addAssistantOptions(options) {
+    const subtitles = ["Suave", "Intermedia", "Firme"];
     const div = document.createElement("div");
     div.className = "message assistant";
+    const list = document.createElement("div");
+    list.className = "option-list";
     options.forEach((option, index) => {
       const optionDiv = document.createElement("div");
       optionDiv.className = "option-block";
-      optionDiv.textContent = option.trim();
-      div.appendChild(optionDiv);
+      const header = document.createElement("div");
+      header.className = "option-header";
+
+      const title = document.createElement("div");
+      title.className = "option-title";
+      title.textContent = `Opción ${index + 1}`;
+
+      const subtitle = document.createElement("span");
+      subtitle.className = "option-subtitle";
+      subtitle.textContent = subtitles[index] || "";
+      title.appendChild(subtitle);
+
+      const actions = document.createElement("div");
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.className = "copy-button";
+      copyButton.setAttribute("aria-label", "Copiar respuesta");
+      copyButton.textContent = "📋";
+      actions.appendChild(copyButton);
+
+      header.appendChild(title);
+      header.appendChild(actions);
+
+      const text = document.createElement("div");
+      text.className = "option-text";
+      text.textContent = option;
+
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(option);
+          const feedback = document.createElement("span");
+          feedback.className = "copy-feedback";
+          feedback.textContent = "Copiado";
+          actions.appendChild(feedback);
+          setTimeout(() => feedback.remove(), 1200);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      optionDiv.appendChild(header);
+      optionDiv.appendChild(text);
+      list.appendChild(optionDiv);
     });
+    div.appendChild(list);
     messagesEl.appendChild(div);
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function hasValidOptions(answer) {
-    const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
-    const counts = labels.map(label => answer.split(label).length - 1);
-    const indices = labels.map(label => answer.indexOf(label));
-    return counts.every(count => count === 1) &&
-      indices.every(index => index !== -1) &&
-      indices[0] < indices[1] &&
-      indices[1] < indices[2];
-  }
-
   function splitOptions(answer) {
-    const labels = ["Opción 1:", "Opción 2:", "Opción 3:"];
-    const indices = labels.map(label => answer.indexOf(label));
+    const labels = ["opción 1", "opción 2", "opción 3"];
+    const lower = answer.toLowerCase();
+    const indices = labels.map(label => lower.indexOf(label));
+    if (indices.some(index => index === -1)) {
+      return [answer.trim()];
+    }
+    if (!(indices[0] < indices[1] && indices[1] < indices[2])) {
+      return [answer.trim()];
+    }
     return labels.map((label, index) => {
       const start = indices[index];
       const end = index < indices.length - 1 ? indices[index + 1] : answer.length;
-      return answer.slice(start, end).trim();
+      const slice = answer.slice(start, end);
+      const match = slice.match(/opción\s*\d+\s*:?\s*/i);
+      return slice.slice(match ? match[0].length : 0).trim();
     });
   }
 
@@ -291,23 +388,23 @@
         body: JSON.stringify({ messages })
       });
 
-      const data = await res.json();
-      if (!data || typeof data.answer !== "string") {
-        addMessage("assistant", "Hubo un problema al generar las respuestas. Intenta nuevamente.");
-        return;
+      const rawText = await res.text();
+      let answerText = rawText;
+      try {
+        const data = JSON.parse(rawText);
+        if (data && typeof data.answer === "string") {
+          answerText = data.answer;
+        }
+      } catch (error) {
+        console.error(error);
       }
 
-      if (!hasValidOptions(data.answer)) {
-        addMessage("assistant", "No pude generar respuestas claras. Intenta nuevamente.");
-        return;
-      }
-
-      const options = splitOptions(data.answer);
+      const options = splitOptions(answerText || "");
       addAssistantOptions(options);
-      messages.push({ role: "assistant", content: data.answer });
+      messages.push({ role: "assistant", content: answerText });
       saveChat();
     } catch (error) {
-      addMessage("assistant", "Hubo un problema al generar las respuestas. Intenta nuevamente.");
+      console.error(error);
     } finally {
       setLoading(false);
     }
@@ -319,8 +416,26 @@
     const text = input.value.trim();
     if (!text) return;
     input.value = "";
+    input.style.height = "";
     sendMessage(text);
   });
+
+  function autoGrowTextarea() {
+    const styles = getComputedStyle(input);
+    const lineHeight = parseFloat(styles.lineHeight) || 24;
+    const maxHeight = lineHeight * 8;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+  }
+
+  input.addEventListener("input", autoGrowTextarea);
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  autoGrowTextarea();
 
   menuBtn.onclick = () => menu.classList.toggle("open");
   resetBtn.onclick = () => {
