@@ -75,21 +75,22 @@
     .workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: 3fr 4fr 3fr;
+      grid-template-columns: 2.6fr 4.8fr 3.1fr;
       grid-template-rows: auto 1fr;
-      gap: 24px;
-      padding: 10px 28px 28px;
+      gap: 28px;
+      padding: 12px 32px 32px;
       min-height: 0;
     }
 
     .column {
       background: #ffffff;
       border-radius: 20px;
+      border: 1px solid #e2e8f0;
       padding: 24px;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
     }
 
     .column-header {
@@ -122,6 +123,12 @@
       cursor: pointer;
       font-size: 13px;
       font-weight: 500;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .context-button:hover {
+      border-color: #94a3b8;
+      color: #1d4ed8;
     }
 
     .context-button.active {
@@ -147,6 +154,12 @@
       line-height: 1.6;
       min-height: 220px;
       background: #f8fafc;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
     }
 
     button {
@@ -158,11 +171,20 @@
       cursor: pointer;
       font-size: 16px;
       font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(37, 99, 235, 0.28);
+      background: #1e40af;
     }
 
     button:disabled {
-      opacity: 0.7;
+      opacity: 0.65;
       cursor: not-allowed;
+      box-shadow: none;
     }
 
     .column-input {
@@ -194,8 +216,8 @@
       flex: 1;
       overflow-y: auto;
       display: grid;
-      grid-template-columns: 4fr 3fr;
-      gap: 20px;
+      grid-template-columns: 4.8fr 3.1fr;
+      gap: 22px;
       padding-right: 4px;
     }
 
@@ -214,7 +236,7 @@
     .message.assistant {
       grid-column: 1 / -1;
       display: grid;
-      grid-template-columns: 4fr 3fr;
+      grid-template-columns: 4.8fr 3.1fr;
       gap: 18px;
       align-items: start;
     }
@@ -222,7 +244,7 @@
     .option-list {
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
     }
 
     .option-block {
@@ -233,6 +255,13 @@
       border: 1px solid #e2e8f0;
       border-radius: 16px;
       padding: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .option-block:hover {
+      border-color: #c7d2fe;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+      transform: translateY(-1px);
     }
 
     .option-header {
@@ -278,12 +307,20 @@
       background: #1d4ed8;
       cursor: pointer;
       font-size: 16px;
-      padding: 10px 16px;
-      border-radius: 10px;
+      padding: 12px 18px;
+      border-radius: 12px;
       color: #fff;
       display: inline-flex;
       align-items: center;
       gap: 8px;
+      box-shadow: 0 12px 22px rgba(37, 99, 235, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .copy-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 26px rgba(37, 99, 235, 0.32);
+      background: #1e40af;
     }
 
     .copy-button::after {
@@ -296,6 +333,7 @@
       font-size: 12px;
       color: #1d4ed8;
       margin-left: 8px;
+      animation: fadeCopy 1.2s ease forwards;
     }
 
     .copy-feedback::after {
@@ -318,17 +356,56 @@
       line-height: 1.7;
       white-space: pre-wrap;
       box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .analysis-card::before {
-      content: "Resumen de análisis";
-      display: block;
+    .analysis-section {
+      background: #ffffff;
+      border: 1px solid #dbe4ff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .analysis-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
       font-weight: 700;
-      font-size: 13px;
+      font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
       color: #4c51bf;
       margin-bottom: 8px;
+    }
+
+    .analysis-section-title::before {
+      content: attr(data-icon);
+      font-size: 14px;
+    }
+
+    .analysis-section-body {
+      color: #1e293b;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    @keyframes fadeCopy {
+      0% {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      20% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
     }
 
     @media (max-width: 1023px) {
@@ -336,12 +413,16 @@
         grid-template-columns: 1fr;
         grid-template-rows: auto;
         padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
 
       .column {
         box-shadow: none;
         border-radius: 16px;
         padding: 18px;
+        border: 1px solid #e2e8f0;
       }
 
       .column-input {
@@ -359,6 +440,7 @@
         grid-column: 1;
         grid-row: auto;
         grid-template-columns: 1fr;
+        gap: 20px;
       }
 
       .message.assistant {
@@ -370,6 +452,8 @@
       .analysis-card {
         max-height: 60vh;
         overflow: auto;
+        padding: 16px;
+        gap: 14px;
       }
 
       .option-list::before {
@@ -390,13 +474,14 @@
       .option-header {
         flex-direction: column;
         align-items: flex-start;
+        gap: 6px;
       }
 
       .copy-button {
         width: 100%;
         justify-content: center;
-        position: sticky;
-        bottom: 12px;
+        padding: 14px 18px;
+        font-size: 16px;
       }
 
       .copy-button::after {
@@ -473,6 +558,56 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
+  function extractAnalysisSections(text) {
+    const normalized = text.replace(/\r\n/g, "\n").trim();
+    const lecturaIndex = normalized.search(/(?:🔍\s*)?Lectura r[áa]pida/i);
+    const pasandoIndex = normalized.search(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
+    if (lecturaIndex === -1 || pasandoIndex === -1 || pasandoIndex <= lecturaIndex) {
+      return null;
+    }
+
+    const lecturaTitleMatch = normalized.match(/(?:🔍\s*)?Lectura r[áa]pida/i);
+    const pasandoTitleMatch = normalized.match(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
+    const lecturaTitleRaw = lecturaTitleMatch ? lecturaTitleMatch[0] : "Lectura rápida";
+    const pasandoTitleRaw = pasandoTitleMatch ? pasandoTitleMatch[0] : "Qué está pasando";
+    const lecturaTitle = lecturaTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
+    const pasandoTitle = pasandoTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
+    const lecturaBody = normalized
+      .slice(lecturaIndex + lecturaTitleRaw.length, pasandoIndex)
+      .trim()
+      .replace(/^[:\-\s]+/, "");
+    const pasandoBody = normalized
+      .slice(pasandoIndex + pasandoTitleRaw.length)
+      .trim()
+      .replace(/^[:\-\s]+/, "");
+
+    return [
+      { title: lecturaTitle, body: lecturaBody, icon: "⚡" },
+      { title: pasandoTitle, body: pasandoBody, icon: "🧭" }
+    ];
+  }
+
+  function buildAnalysisSection(section) {
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "analysis-section";
+
+    const title = document.createElement("div");
+    title.className = "analysis-section-title";
+    title.dataset.icon = section.icon;
+    title.textContent = section.title;
+
+    const body = document.createElement("div");
+    body.className = "analysis-section-body";
+    body.textContent = section.body;
+
+    sectionEl.appendChild(title);
+    if (section.body) {
+      sectionEl.appendChild(body);
+    }
+
+    return sectionEl;
+  }
+
   function addAssistantResponse(analysisText, options) {
     const subtitles = {
       A: "Segura",
@@ -484,7 +619,14 @@
     if (analysisText) {
       const analysisCard = document.createElement("div");
       analysisCard.className = "analysis-card";
-      analysisCard.textContent = analysisText;
+      const sections = extractAnalysisSections(analysisText);
+      if (sections) {
+        sections.forEach(section => {
+          analysisCard.appendChild(buildAnalysisSection(section));
+        });
+      } else {
+        analysisCard.textContent = analysisText;
+      }
       div.appendChild(analysisCard);
     }
     const list = document.createElement("div");
