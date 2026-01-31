@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>ReplyFast</title>
+  <title>BetweenLines</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Responde mensajes difíciles en segundos. Pega el mensaje y recibe respuestas listas." />
+  <meta name="description" content="Analiza intención y subtexto. Te dice qué pasa y qué responder." />
 
   <style>
     body {
@@ -27,11 +27,12 @@
       display: flex;
       flex-direction: column;
       overflow: hidden;
+      position: relative;
     }
 
     .messages {
       flex: 1;
-      padding: 20px;
+      padding: 60px 20px 20px;
       overflow-y: auto;
       display: flex;
       flex-direction: column;
@@ -128,6 +129,15 @@
       right: 18px;
     }
 
+    .app-title {
+      position: absolute;
+      top: 16px;
+      left: 18px;
+      font-size: 16px;
+      font-weight: 600;
+      color: #111827;
+    }
+
     .menu-button {
       background: none;
       border: none;
@@ -168,6 +178,10 @@
       display: flex;
       flex-direction: column;
       gap: 6px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 12px 14px;
     }
 
     .option-header {
@@ -207,11 +221,24 @@
     .option-text {
       white-space: pre-wrap;
     }
+
+    .analysis-card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #374151;
+      font-size: 14px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      margin-bottom: 12px;
+    }
   </style>
 </head>
 <body>
 
 <div class="chat-container">
+  <div class="app-title">BetweenLines</div>
   <div class="menu-wrapper">
     <button class="menu-button" id="menuBtn">⋯</button>
     <div class="menu" id="menu">
@@ -224,21 +251,20 @@
   <form class="input-container" id="form">
     <div class="context-selector" id="contextSelector">
       <button type="button" class="context-button active" data-context="General">General</button>
-      <button type="button" class="context-button" data-context="Trabajo">Trabajo</button>
-      <button type="button" class="context-button" data-context="Amor">Amor</button>
-      <button type="button" class="context-button" data-context="Familia">Familia</button>
-      <button type="button" class="context-button" data-context="Amistad">Amistad</button>
+      <button type="button" class="context-button" data-context="Citas">Citas</button>
+      <button type="button" class="context-button" data-context="Pareja">Pareja</button>
+      <button type="button" class="context-button" data-context="Ex">Ex</button>
+      <button type="button" class="context-button" data-context="Coqueteo">Coqueteo</button>
     </div>
     <div class="input-row">
       <textarea id="input" rows="2" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off"></textarea>
-      <button type="submit">Generar respuestas</button>
+      <button type="submit">Analizar</button>
     </div>
   </form>
 </div>
 
 <script>
   const API_URL = "https://hotel-chat-proxy.vercel.app/api/t3";
-  const STORAGE_KEY = "t3-chat-history";
 
   const messagesEl = document.getElementById("messages");
   const form = document.getElementById("form");
@@ -255,9 +281,8 @@
   let isLoading = false;
 
   const WELCOME =
-    "Pega aquí el mensaje que acabas de recibir.\n" +
-    "Respira.\n" +
-    "Te doy 3 respuestas listas para enviar.";
+    "Pega el mensaje que recibiste.\n" +
+    "Te digo el subtexto y te doy 3 respuestas.";
 
   function addMessage(role, text) {
     const div = document.createElement("div");
@@ -267,13 +292,23 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function addAssistantOptions(options) {
-    const subtitles = ["Suave", "Intermedia", "Firme"];
+  function addAssistantResponse(analysisText, options) {
+    const subtitles = {
+      A: "Segura",
+      B: "Intermedia",
+      C: "Retirada"
+    };
     const div = document.createElement("div");
     div.className = "message assistant";
+    if (analysisText) {
+      const analysisCard = document.createElement("div");
+      analysisCard.className = "analysis-card";
+      analysisCard.textContent = analysisText;
+      div.appendChild(analysisCard);
+    }
     const list = document.createElement("div");
     list.className = "option-list";
-    options.forEach((option, index) => {
+    options.forEach((option) => {
       const optionDiv = document.createElement("div");
       optionDiv.className = "option-block";
       const header = document.createElement("div");
@@ -281,14 +316,13 @@
 
       const title = document.createElement("div");
       title.className = "option-title";
-      title.textContent = `Opción ${index + 1}`;
-
-      const subtitle = document.createElement("span");
-      subtitle.className = "option-subtitle";
-      subtitle.textContent = subtitles[index] || "";
-      title.appendChild(subtitle);
+      title.textContent = `Opción ${option.label}`;
 
       const actions = document.createElement("div");
+      const subtitle = document.createElement("span");
+      subtitle.className = "option-subtitle";
+      subtitle.textContent = subtitles[option.label] || "";
+
       const copyButton = document.createElement("button");
       copyButton.type = "button";
       copyButton.className = "copy-button";
@@ -297,15 +331,16 @@
       actions.appendChild(copyButton);
 
       header.appendChild(title);
+      header.appendChild(subtitle);
       header.appendChild(actions);
 
       const text = document.createElement("div");
       text.className = "option-text";
-      text.textContent = option;
+      text.textContent = option.text;
 
       copyButton.addEventListener("click", async () => {
         try {
-          await navigator.clipboard.writeText(option);
+          await navigator.clipboard.writeText(option.text);
           const feedback = document.createElement("span");
           feedback.className = "copy-feedback";
           feedback.textContent = "Copiado";
@@ -325,39 +360,39 @@
     messagesEl.scrollTop = messagesEl.scrollHeight;
   }
 
-  function splitOptions(answer) {
-    const labels = ["opción 1", "opción 2", "opción 3"];
-    const lower = answer.toLowerCase();
-    const indices = labels.map(label => lower.indexOf(label));
-    if (indices.some(index => index === -1)) {
-      return [answer.trim()];
-    }
-    if (!(indices[0] < indices[1] && indices[1] < indices[2])) {
-      return [answer.trim()];
-    }
-    return labels.map((label, index) => {
-      const start = indices[index];
-      const end = index < indices.length - 1 ? indices[index + 1] : answer.length;
-      const slice = answer.slice(start, end);
-      const match = slice.match(/opción\s*\d+\s*:?\s*/i);
-      return slice.slice(match ? match[0].length : 0).trim();
+  function parseResponse(answer) {
+    if (!answer) return null;
+    const normalized = answer.replace(/\r\n/g, "\n");
+    const analysisMatch = normalized.match(
+      /(?:🔍\s*)?Lectura r[áa]pida[\s\S]*?(?=(?:💬\s*)?Qu[eé]\s+conviene\s+hacer\s+ahora|$)/i
+    );
+    const analysisContent = analysisMatch ? analysisMatch[0].trim() : "";
+
+    const optionRegex = (label) =>
+      new RegExp(
+        `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
+        "i"
+      );
+    const options = ["A", "B", "C"].map((label) => {
+      const match = normalized.match(optionRegex(label));
+      return match ? { label, text: match[1].trim() } : null;
     });
+
+    if (options.every(Boolean)) {
+      return { analysis: analysisContent, options };
+    }
+    return null;
   }
 
   function setLoading(state) {
     isLoading = state;
     submitButton.disabled = state;
-    submitButton.textContent = state ? "Generando…" : "Generar respuestas";
+    submitButton.textContent = state ? "Analizando…" : "Analizar";
   }
 
   function loadChat() {
-    localStorage.removeItem(STORAGE_KEY);
     messages = [];
     addMessage("assistant", WELCOME);
-  }
-
-  function saveChat() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(messages));
   }
 
   function setContext(context) {
@@ -378,7 +413,6 @@
     messagesEl.innerHTML = "";
     messages = [{ role: "user", content: payloadFinal }];
     addMessage("user", text);
-    saveChat();
 
     setLoading(true);
     try {
@@ -399,10 +433,13 @@
         console.error(error);
       }
 
-      const options = splitOptions(answerText || "");
-      addAssistantOptions(options);
+      const parsed = parseResponse(answerText || "");
+      if (parsed) {
+        addAssistantResponse(parsed.analysis, parsed.options);
+      } else {
+        addMessage("assistant", answerText || "");
+      }
       messages.push({ role: "assistant", content: answerText });
-      saveChat();
     } catch (error) {
       console.error(error);
     } finally {
@@ -439,7 +476,6 @@
 
   menuBtn.onclick = () => menu.classList.toggle("open");
   resetBtn.onclick = () => {
-    localStorage.removeItem(STORAGE_KEY);
     messages = [];
     messagesEl.innerHTML = "";
     addMessage("assistant", WELCOME);
