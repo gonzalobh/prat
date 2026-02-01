@@ -85,12 +85,12 @@
     .column {
       background: #ffffff;
       border-radius: 20px;
-      border: 1px solid #e9edf5;
+      border: 1px solid #e2e8f0;
       padding: 24px;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      box-shadow: 0 14px 40px rgba(15, 23, 42, 0.06);
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
     }
 
     .column-header {
@@ -288,7 +288,7 @@
     .analysis-column {
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 16px;
     }
 
     .responses-column {
@@ -308,8 +308,8 @@
       display: flex;
       flex-direction: column;
       gap: 12px;
-      background: #f9fafb;
-      border: 1px solid #eef2f7;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
       border-radius: 16px;
       padding: 16px;
       transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
@@ -334,12 +334,6 @@
       gap: 10px;
       font-weight: 700;
       font-size: 16px;
-    }
-
-    .option-tagline {
-      font-size: 12px;
-      color: #64748b;
-      font-weight: 500;
     }
 
     .option-subtitle {
@@ -386,21 +380,21 @@
       background: #1e40af;
     }
 
-    .copy-label {
+    .copy-button::after {
+      content: "Copiar";
       font-size: 14px;
       font-weight: 600;
     }
 
-    .visually-hidden {
-      position: absolute;
-      width: 1px;
-      height: 1px;
-      padding: 0;
-      margin: -1px;
-      overflow: hidden;
-      clip: rect(0, 0, 0, 0);
-      white-space: nowrap;
-      border: 0;
+    .copy-feedback {
+      font-size: 12px;
+      color: #1d4ed8;
+      margin-left: 8px;
+      animation: fadeCopy 1.2s ease forwards;
+    }
+
+    .copy-feedback::after {
+      content: " ✓";
     }
 
     .option-text {
@@ -410,14 +404,15 @@
     }
 
     .analysis-card {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 18px;
       padding: 18px;
       color: #1e293b;
       font-size: 15px;
       line-height: 1.7;
       white-space: pre-wrap;
+      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
       display: flex;
       flex-direction: column;
       gap: 16px;
@@ -455,10 +450,10 @@
 
     .analysis-section {
       background: #ffffff;
-      border: 1px solid #eef2f7;
-      border-radius: 12px;
+      border: 1px solid #dbe4ff;
+      border-radius: 14px;
       padding: 14px 16px;
-      box-shadow: 0 6px 14px rgba(15, 23, 42, 0.05);
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
     }
 
     .loader-panel {
@@ -520,152 +515,19 @@
       white-space: pre-wrap;
     }
 
-    .insight-card {
-      background: #ffffff;
-      border: 1px solid #eef2f7;
-      border-radius: 18px;
-      padding: 22px 22px 20px;
-      box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .insight-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      color: #475569;
-    }
-
-    .insight-body {
-      font-size: 18px;
-      font-weight: 600;
-      color: #0f172a;
-      line-height: 1.5;
-      display: -webkit-box;
-      -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical;
-      overflow: hidden;
-    }
-
-    .movements-card {
-      background: #ffffff;
-      border: 1px solid #eef2f7;
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      box-shadow: 0 10px 22px rgba(15, 23, 42, 0.05);
-    }
-
-    .movements-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      font-weight: 700;
-      color: #475569;
-    }
-
-    .movements-list {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .movement-item {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: #f8fafc;
-      border: 1px solid #eef2f7;
-    }
-
-    .movement-label {
-      font-weight: 700;
-      font-size: 13px;
-      color: #1e293b;
-    }
-
-    .movement-summary {
-      flex: 1;
-      font-size: 13px;
-      color: #475569;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .movement-button {
-      background: #e2e8f0;
-      color: #1e293b;
-      border-radius: 999px;
-      font-size: 12px;
-      padding: 6px 12px;
-      font-weight: 600;
-      box-shadow: none;
-    }
-
-    .movement-button:hover {
-      background: #cbd5f5;
-      box-shadow: none;
-      transform: none;
-    }
-
-    .analysis-details {
-      border: 1px solid #eef2f7;
-      border-radius: 16px;
-      background: #ffffff;
-      overflow: hidden;
-    }
-
-    .analysis-details summary {
-      list-style: none;
-      cursor: pointer;
-      padding: 14px 16px;
-      font-weight: 600;
-      color: #1d4ed8;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 8px;
-    }
-
-    .analysis-details summary::-webkit-details-marker {
-      display: none;
-    }
-
-    .analysis-details summary::after {
-      content: "⌄";
-      font-size: 14px;
-      transition: transform 0.2s ease;
-    }
-
-    .analysis-details[open] summary::after {
-      transform: rotate(180deg);
-    }
-
-    .analysis-details-body {
-      padding: 0 16px 16px;
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      transition: max-height 0.35s ease, opacity 0.3s ease;
-    }
-
-    .analysis-details[open] .analysis-details-body {
-      max-height: 1200px;
-      opacity: 1;
-    }
-
-    .option-highlight {
-      border-color: #6366f1;
-      box-shadow: 0 18px 36px rgba(99, 102, 241, 0.2);
+    @keyframes fadeCopy {
+      0% {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      20% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
     }
 
     @media (max-width: 1023px) {
@@ -752,26 +614,12 @@
         font-size: 16px;
       }
 
+      .copy-button::after {
+        content: "Copiar respuesta";
+      }
+
       .input-row button::after {
         content: " situación";
-      }
-
-      .insight-card {
-        padding: 18px;
-      }
-
-      .insight-body {
-        font-size: 16px;
-        -webkit-line-clamp: 3;
-      }
-
-      .movements-card {
-        padding: 14px;
-      }
-
-      .analysis-details summary {
-        padding: 16px;
-        font-size: 14px;
       }
 
       .loader-desktop {
@@ -869,8 +717,6 @@
   let analysisCardEl = null;
   let responsesColumnEl = null;
   let loaderDesktopEl = null;
-  let insightTextEl = null;
-  let movementsListEl = null;
 
   const WELCOME =
     "Describe la situación.\n" +
@@ -963,65 +809,6 @@
     return sections;
   }
 
-  function getFirstSentence(text) {
-    if (!text) return "";
-    const cleaned = text
-      .replace(/^[\s\-•]+/, "")
-      .replace(/\s+/g, " ")
-      .trim();
-    const sentenceMatch = cleaned.match(/[^.!?]+[.!?]?/);
-    return sentenceMatch ? sentenceMatch[0].trim() : cleaned;
-  }
-
-  function extractKeyInsight(rawText) {
-    const fallback = "Aquí tienes la claridad central y tus 3 movimientos posibles.";
-    if (!rawText) return fallback;
-    const normalized = rawText.replace(/\r\n/g, "\n").trim();
-    if (!normalized) return fallback;
-
-    const lecturaMatch = normalized.match(
-      /(?:🔍\s*)?Lectura r[áa]pida([\s\S]*?)(?=(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando|(?:🧠\s*)?Estrategia|Opc[ií]ón|$)/i
-    );
-    if (lecturaMatch) {
-      const lecturaBody = lecturaMatch[1].trim().replace(/^[:\-\s]+/, "");
-      const situacionMatch = lecturaBody.match(/Situaci[oó]n\s*:\s*([^\n]+)/i);
-      if (situacionMatch && situacionMatch[1]) {
-        return getFirstSentence(situacionMatch[1]);
-      }
-      const firstLine = lecturaBody.split("\n").find(line => line.trim());
-      return getFirstSentence(firstLine || lecturaBody) || fallback;
-    }
-
-    const pasandoMatch = normalized.match(
-      /(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando([\s\S]*?)(?=(?:🧠\s*)?Estrategia|Opc[ií]ón|$)/i
-    );
-    if (pasandoMatch) {
-      const pasandoBody = pasandoMatch[1].trim().replace(/^[:\-\s]+/, "");
-      return getFirstSentence(pasandoBody) || fallback;
-    }
-
-    return getFirstSentence(normalized) || fallback;
-  }
-
-  function getOptionSummary(text) {
-    if (!text) return "Movimiento disponible";
-    const firstLine = text.split("\n").find(line => line.trim());
-    return getFirstSentence(firstLine || text);
-  }
-
-  function scrollToOption(letter) {
-    try {
-      if (!responsesColumnEl) return;
-      const target = responsesColumnEl.querySelector(`[data-option='${letter}']`);
-      if (!target) return;
-      target.scrollIntoView({ behavior: "smooth", block: "start" });
-      target.classList.add("option-highlight");
-      setTimeout(() => target.classList.remove("option-highlight"), 1200);
-    } catch (error) {
-      console.error(error);
-    }
-  }
-
   function buildAnalysisSection(section) {
     const sectionEl = document.createElement("div");
     sectionEl.className = "analysis-section";
@@ -1044,62 +831,28 @@
   }
 
   function addAssistantResponse(analysisText, options) {
-    const safeOptions = Array.isArray(options) ? options : [];
     const subtitles = {
       A: "Conservadora",
       B: "Balanceada",
       C: "Decisiva"
     };
-    const keyInsight = extractKeyInsight(analysisText);
-    if (insightTextEl) {
-      insightTextEl.textContent = keyInsight;
-    }
-    if (analysisCardEl) {
+    if (analysisCardEl && analysisText) {
       analysisCardEl.innerHTML = "";
-      if (analysisText) {
-        const sections = extractAnalysisSections(analysisText);
-        if (sections) {
-          sections.forEach(section => {
-            analysisCardEl.appendChild(buildAnalysisSection(section));
-          });
-        } else {
-          analysisCardEl.textContent = analysisText;
-        }
+      const sections = extractAnalysisSections(analysisText);
+      if (sections) {
+        sections.forEach(section => {
+          analysisCardEl.appendChild(buildAnalysisSection(section));
+        });
+      } else {
+        analysisCardEl.textContent = analysisText;
       }
     }
     if (!responsesColumnEl) return;
-    if (movementsListEl) {
-      movementsListEl.innerHTML = "";
-      safeOptions.forEach(option => {
-        const item = document.createElement("div");
-        item.className = "movement-item";
-
-        const label = document.createElement("div");
-        label.className = "movement-label";
-        label.textContent = option.label;
-
-        const summary = document.createElement("div");
-        summary.className = "movement-summary";
-        summary.textContent = getOptionSummary(option.text);
-
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "movement-button";
-        button.textContent = "Ver";
-        button.addEventListener("click", () => scrollToOption(option.label));
-
-        item.appendChild(label);
-        item.appendChild(summary);
-        item.appendChild(button);
-        movementsListEl.appendChild(item);
-      });
-    }
     const list = document.createElement("div");
     list.className = "option-list";
-    safeOptions.forEach((option) => {
+    options.forEach((option) => {
       const optionDiv = document.createElement("div");
       optionDiv.className = "option-block";
-      optionDiv.dataset.option = option.label;
       const header = document.createElement("div");
       header.className = "option-header";
 
@@ -1116,33 +869,12 @@
       copyButton.type = "button";
       copyButton.className = "copy-button";
       copyButton.setAttribute("aria-label", "Copiar respuesta");
-      const copyIcon = document.createElement("span");
-      copyIcon.textContent = "📋";
-      const copyLabel = document.createElement("span");
-      copyLabel.className = "copy-label";
-      copyLabel.textContent = "Copiar";
-      const copyStatus = document.createElement("span");
-      copyStatus.className = "visually-hidden";
-      copyStatus.setAttribute("aria-live", "polite");
-      copyStatus.textContent = "";
-      copyButton.appendChild(copyIcon);
-      copyButton.appendChild(copyLabel);
-      copyButton.appendChild(copyStatus);
+      copyButton.textContent = "📋";
       actions.appendChild(copyButton);
 
       header.appendChild(title);
       header.appendChild(subtitle);
       header.appendChild(actions);
-
-      const tagline = document.createElement("div");
-      tagline.className = "option-tagline";
-      if (option.label === "A") {
-        tagline.textContent = "Ganar tiempo sin fricción";
-      } else if (option.label === "B") {
-        tagline.textContent = "Buscar claridad sin exponerte";
-      } else if (option.label === "C") {
-        tagline.textContent = "Forzar una definición";
-      }
 
       const text = document.createElement("div");
       text.className = "option-text";
@@ -1151,23 +883,17 @@
       copyButton.addEventListener("click", async () => {
         try {
           await navigator.clipboard.writeText(option.text);
-          copyLabel.textContent = "Copiado ✓";
-          copyStatus.textContent = "Copiado";
-          copyButton.disabled = true;
-          setTimeout(() => {
-            copyLabel.textContent = "Copiar";
-            copyStatus.textContent = "";
-            copyButton.disabled = false;
-          }, 1200);
+          const feedback = document.createElement("span");
+          feedback.className = "copy-feedback";
+          feedback.textContent = "Copiado";
+          actions.appendChild(feedback);
+          setTimeout(() => feedback.remove(), 1200);
         } catch (error) {
           console.error(error);
         }
       });
 
       optionDiv.appendChild(header);
-      if (tagline.textContent) {
-        optionDiv.appendChild(tagline);
-      }
       optionDiv.appendChild(text);
       list.appendChild(optionDiv);
     });
@@ -1189,14 +915,12 @@
         `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
         "i"
       );
-    const options = ["A", "B", "C"]
-      .map((label) => {
-        const match = normalized.match(optionRegex(label));
-        return match ? { label, text: match[1].trim() } : null;
-      })
-      .filter(Boolean);
+    const options = ["A", "B", "C"].map((label) => {
+      const match = normalized.match(optionRegex(label));
+      return match ? { label, text: match[1].trim() } : null;
+    });
 
-    if (analysisContent || options.length) {
+    if (options.every(Boolean)) {
       return { analysis: analysisContent, options };
     }
     return null;
@@ -1259,45 +983,13 @@
     const analysisColumn = document.createElement("div");
     analysisColumn.className = "analysis-column";
 
-    const insightCard = document.createElement("div");
-    insightCard.className = "insight-card";
-    const insightTitle = document.createElement("div");
-    insightTitle.className = "insight-title";
-    insightTitle.textContent = "Insight clave";
-    insightTextEl = document.createElement("div");
-    insightTextEl.className = "insight-body";
-    insightTextEl.textContent = "Aquí tienes la claridad central y tus 3 movimientos posibles.";
-    insightCard.appendChild(insightTitle);
-    insightCard.appendChild(insightTextEl);
-
-    const movementsCard = document.createElement("div");
-    movementsCard.className = "movements-card";
-    const movementsTitle = document.createElement("div");
-    movementsTitle.className = "movements-title";
-    movementsTitle.textContent = "3 movimientos";
-    movementsListEl = document.createElement("div");
-    movementsListEl.className = "movements-list";
-    movementsCard.appendChild(movementsTitle);
-    movementsCard.appendChild(movementsListEl);
-
     analysisCardEl = document.createElement("div");
     analysisCardEl.className = "analysis-card";
-    const analysisDetails = document.createElement("details");
-    analysisDetails.className = "analysis-details";
-    const analysisSummary = document.createElement("summary");
-    analysisSummary.textContent = "Ver razonamiento completo";
-    const analysisDetailsBody = document.createElement("div");
-    analysisDetailsBody.className = "analysis-details-body";
-    analysisDetailsBody.appendChild(analysisCardEl);
-    analysisDetails.appendChild(analysisSummary);
-    analysisDetails.appendChild(analysisDetailsBody);
 
     loaderDesktopEl = buildLoaderPanel("loader-desktop");
     analysisColumn.appendChild(buildUserMessageCard(text));
     analysisColumn.appendChild(loaderDesktopEl);
-    analysisColumn.appendChild(insightCard);
-    analysisColumn.appendChild(movementsCard);
-    analysisColumn.appendChild(analysisDetails);
+    analysisColumn.appendChild(analysisCardEl);
 
     responsesColumnEl = document.createElement("div");
     responsesColumnEl.className = "responses-column";
@@ -1329,7 +1021,11 @@
       if (parsed) {
         addAssistantResponse(parsed.analysis, parsed.options);
       } else {
-        addAssistantResponse(answerText || "", []);
+        if (analysisCardEl) {
+          analysisCardEl.textContent = answerText || "";
+        } else {
+          addMessage("assistant", answerText || "");
+        }
       }
       messages.push({ role: "assistant", content: answerText });
     } catch (error) {
