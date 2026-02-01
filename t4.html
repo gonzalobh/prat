@@ -10,8 +10,8 @@
     body {
       margin: 0;
       font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-      background: #f4f5f7;
-      color: #0f172a;
+      background: #f7f6f3;
+      color: #111827;
       min-height: 100vh;
     }
 
@@ -29,22 +29,24 @@
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 20px 28px 10px;
+      padding: 18px 28px 4px;
       position: relative;
     }
 
     .app-title {
-      font-size: 18px;
-      font-weight: 700;
+      font-size: 15px;
+      font-weight: 600;
       color: #0f172a;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
     .menu-button {
       background: none;
       border: none;
-      font-size: 24px;
+      font-size: 22px;
       cursor: pointer;
-      color: #0f172a;
+      color: #475569;
     }
 
     .menu {
@@ -54,10 +56,11 @@
       margin-top: 8px;
       background: #fff;
       border: 1px solid #e5e7eb;
-      border-radius: 14px;
-      padding: 8px;
+      border-radius: 12px;
+      padding: 6px;
       display: none;
       z-index: 5;
+      box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
     }
 
     .menu.open {
@@ -70,35 +73,35 @@
       width: 100%;
       text-align: left;
       padding: 8px;
+      font-size: 13px;
     }
 
     .workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: 2.4fr 5.2fr 3fr;
-      grid-template-rows: auto 1fr;
-      gap: 34px;
-      padding: 12px 36px 32px;
+      grid-template-columns: minmax(260px, 1.3fr) minmax(320px, 2.7fr);
+      grid-template-rows: 1fr;
+      gap: 36px;
+      padding: 18px 36px 42px;
       min-height: 0;
     }
 
     .column {
       background: #ffffff;
-      border-radius: 20px;
-      border: 1px solid #e2e8f0;
-      padding: 24px;
+      border-radius: 18px;
+      border: 1px solid #ececec;
+      padding: 22px;
       display: flex;
       flex-direction: column;
       min-height: 0;
-      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
     }
 
     .column-header {
-      font-size: 14px;
+      font-size: 12px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.12em;
       font-weight: 600;
-      color: #64748b;
+      color: #6b7280;
       margin-bottom: 18px;
     }
 
@@ -115,26 +118,26 @@
     }
 
     .context-button {
-      padding: 8px 14px;
+      padding: 7px 13px;
       border-radius: 999px;
-      border: 1px solid #d1d5db;
+      border: 1px solid #e5e7eb;
       background: #fff;
-      color: #0f172a;
+      color: #111827;
       cursor: pointer;
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 500;
       transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
     }
 
     .context-button:hover {
-      border-color: #94a3b8;
-      color: #1d4ed8;
+      border-color: #cbd5f5;
+      color: #111827;
     }
 
     .context-button.active {
-      background: #1d4ed8;
+      background: #111827;
       color: #fff;
-      border-color: #1d4ed8;
+      border-color: #111827;
     }
 
     .input-row {
@@ -144,9 +147,9 @@
     }
 
     .profile-row {
-      background: #f8fafc;
-      border-radius: 16px;
-      border: 1px solid #e2e8f0;
+      background: #f9fafb;
+      border-radius: 14px;
+      border: 1px solid #ececec;
       padding: 14px;
     }
 
@@ -157,8 +160,8 @@
     .advanced-toggle {
       background: none;
       border: none;
-      color: #1d4ed8;
-      font-size: 13px;
+      color: #6b7280;
+      font-size: 12px;
       font-weight: 600;
       padding: 0;
       cursor: pointer;
@@ -166,63 +169,62 @@
     }
 
     .profile-label {
-      font-size: 13px;
+      font-size: 12px;
       font-weight: 600;
-      color: #475569;
+      color: #6b7280;
     }
 
     select {
-      padding: 12px 14px;
+      padding: 10px 12px;
       border-radius: 12px;
-      border: 1px solid #d1d5db;
+      border: 1px solid #e5e7eb;
       background: #ffffff;
-      font-size: 14px;
-      color: #0f172a;
+      font-size: 13px;
+      color: #111827;
       outline: none;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     select:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+      border-color: #9ca3af;
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
     }
 
     textarea {
       width: 100%;
       padding: 16px 18px;
-      font-size: 16px;
+      font-size: 15px;
       border-radius: 14px;
-      border: 1px solid #cbd5f5;
+      border: 1px solid #e5e7eb;
       outline: none;
       resize: none;
-      line-height: 1.6;
+      line-height: 1.7;
       min-height: 220px;
-      background: #f8fafc;
+      background: #f9fafb;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
 
     textarea:focus {
-      border-color: #6366f1;
-      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+      border-color: #9ca3af;
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
     }
 
     button {
       padding: 14px 18px;
       border-radius: 12px;
       border: none;
-      background: #1d4ed8;
+      background: #111827;
       color: #fff;
       cursor: pointer;
-      font-size: 16px;
+      font-size: 15px;
       font-weight: 600;
       transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+      box-shadow: none;
     }
 
     button:hover:not(:disabled) {
       transform: translateY(-1px);
-      box-shadow: 0 14px 26px rgba(37, 99, 235, 0.28);
-      background: #1e40af;
+      background: #0f172a;
     }
 
     button:disabled {
@@ -232,36 +234,17 @@
     }
 
     .column-input {
-      grid-row: 1 / 3;
-    }
-
-    .output-title {
-      font-size: 14px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 600;
-      color: #64748b;
-      align-self: center;
-    }
-
-    .analysis-title {
-      grid-column: 2;
-      grid-row: 1;
-    }
-
-    .responses-title {
-      grid-column: 3;
       grid-row: 1;
     }
 
     .messages {
-      grid-column: 2 / 4;
-      grid-row: 2;
+      grid-column: 2;
+      grid-row: 1;
       flex: 1;
       overflow-y: auto;
-      display: grid;
-      grid-template-columns: 5.2fr 3fr;
-      gap: 26px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding-right: 4px;
     }
 
@@ -277,183 +260,187 @@
       display: none;
     }
 
-    .message.assistant {
-      grid-column: 1 / -1;
-      display: grid;
-      grid-template-columns: 5.2fr 3fr;
-      gap: 22px;
-      align-items: start;
-    }
-
-    .analysis-column {
+    .response-shell {
+      width: min(720px, 100%);
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 28px;
+      padding: 24px 0 36px;
     }
 
-    .responses-column {
+    .insight-block {
+      text-align: center;
+      padding: 26px 18px;
       display: flex;
       flex-direction: column;
-      gap: 18px;
-      opacity: 0.95;
-    }
-
-    .option-list {
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
-    }
-
-    .option-block {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 16px;
-      padding: 16px;
-      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
-    }
-
-    .option-block:hover {
-      border-color: #c7d2fe;
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
-      transform: translateY(-1px);
-    }
-
-    .option-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
       gap: 14px;
     }
 
-    .option-title {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 700;
-      font-size: 16px;
-    }
-
-    .option-subtitle {
-      font-size: 0;
-      color: #1d4ed8;
-      font-weight: 600;
+    .insight-label {
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    .option-block:nth-child(1) .option-subtitle::before {
-      content: "Conservadora";
-      font-size: 11px;
-    }
-
-    .option-block:nth-child(2) .option-subtitle::before {
-      content: "Balanceada";
-      font-size: 11px;
-    }
-
-    .option-block:nth-child(3) .option-subtitle::before {
-      content: "Decisiva";
-      font-size: 11px;
-    }
-
-    .copy-button {
-      border: none;
-      background: #1d4ed8;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 12px 18px;
-      border-radius: 12px;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 12px 22px rgba(37, 99, 235, 0.25);
-      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
-    }
-
-    .copy-button:hover {
-      transform: translateY(-1px);
-      box-shadow: 0 16px 26px rgba(37, 99, 235, 0.32);
-      background: #1e40af;
-    }
-
-    .copy-button::after {
-      content: "Copiar";
-      font-size: 14px;
+      letter-spacing: 0.32em;
+      color: #9ca3af;
       font-weight: 600;
     }
 
-    .copy-feedback {
+    .insight-text {
+      font-size: 32px;
+      font-weight: 600;
+      color: #111827;
+      line-height: 1.25;
+      max-width: 560px;
+      margin: 0 auto;
+    }
+
+    .reasoning-toggle {
+      background: none;
+      border: none;
+      color: #9ca3af;
       font-size: 12px;
-      color: #1d4ed8;
-      margin-left: 8px;
-      animation: fadeCopy 1.2s ease forwards;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      cursor: pointer;
+      align-self: center;
+      padding: 0;
     }
 
-    .copy-feedback::after {
-      content: " ✓";
-    }
-
-    .option-text {
-      white-space: pre-wrap;
-      color: #0f172a;
-      font-size: 14px;
-    }
-
-    .analysis-card {
-      background: #eef2ff;
-      border: 1px solid #c7d2fe;
-      border-radius: 18px;
-      padding: 18px;
-      color: #1e293b;
-      font-size: 15px;
-      line-height: 1.7;
-      white-space: pre-wrap;
-      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+    .analysis-panel {
+      overflow: hidden;
+      max-height: 0;
+      opacity: 0;
+      transition: max-height 0.35s ease, opacity 0.35s ease;
       display: flex;
       flex-direction: column;
       gap: 16px;
+      border-top: 1px solid #e5e7eb;
+      padding: 0 6px;
+    }
+
+    .analysis-panel.is-open {
+      max-height: 1200px;
+      opacity: 1;
+      padding-top: 18px;
     }
 
     .analysis-user-card {
-      background: #ffffff;
-      border: 1px solid #e2e8f0;
-      border-radius: 18px;
-      padding: 16px;
+      font-size: 13px;
+      color: #6b7280;
       display: flex;
       flex-direction: column;
-      gap: 10px;
-      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+      gap: 8px;
     }
 
     .analysis-user-title {
-      font-weight: 700;
-      font-size: 13px;
-      text-transform: uppercase;
+      font-weight: 600;
       letter-spacing: 0.08em;
-      color: #1d4ed8;
+      text-transform: uppercase;
+      font-size: 11px;
     }
 
     .analysis-user-body {
-      background: #f8fafc;
-      border: 1px solid #e2e8f0;
-      border-radius: 12px;
-      padding: 12px 14px;
       font-size: 14px;
       line-height: 1.6;
-      color: #0f172a;
+      color: #111827;
       white-space: pre-wrap;
     }
 
     .analysis-section {
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
+    }
+
+    .analysis-section-title {
+      font-weight: 600;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .analysis-section-body {
+      color: #111827;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .options-list {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .option-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 16px 18px;
       background: #ffffff;
-      border: 1px solid #dbe4ff;
-      border-radius: 14px;
-      padding: 14px 16px;
-      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+      transition: border-color 0.2s ease, opacity 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      cursor: pointer;
+    }
+
+    .option-card:hover {
+      border-color: #d1d5db;
+    }
+
+    .option-title {
+      font-weight: 600;
+      font-size: 16px;
+      color: #111827;
+      letter-spacing: 0.01em;
+    }
+
+    .option-tradeoff {
+      font-size: 12px;
+      color: #9ca3af;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      min-height: 16px;
+    }
+
+    .option-card.has-tradeoff:hover .option-tradeoff,
+    .option-card.has-tradeoff.is-active .option-tradeoff {
+      opacity: 1;
+    }
+
+    .option-body {
+      max-height: 0;
+      opacity: 0;
+      overflow: hidden;
+      transition: max-height 0.3s ease, opacity 0.3s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-card.is-active .option-body {
+      max-height: 400px;
+      opacity: 1;
+    }
+
+    .option-text {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #111827;
+      white-space: pre-wrap;
+    }
+
+    .copy-button {
+      align-self: flex-start;
+      border: none;
+      background: none;
+      color: #6b7280;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 0;
+      cursor: pointer;
+      min-width: 96px;
     }
 
     .loader-panel {
@@ -462,18 +449,20 @@
       gap: 12px;
       padding: 16px;
       border-radius: 14px;
-      border: 1px dashed #c7d2fe;
-      background: #f8fafc;
-      color: #1e293b;
+      border: 1px dashed #d1d5db;
+      background: #f9fafb;
+      color: #6b7280;
       font-weight: 600;
+      font-size: 13px;
+      align-self: center;
     }
 
     .loader-spinner {
-      width: 22px;
-      height: 22px;
+      width: 20px;
+      height: 20px;
       border-radius: 50%;
-      border: 3px solid #c7d2fe;
-      border-top-color: #1d4ed8;
+      border: 2px solid #d1d5db;
+      border-top-color: #111827;
       animation: spin 0.9s linear infinite;
     }
 
@@ -489,30 +478,6 @@
       to {
         transform: rotate(360deg);
       }
-    }
-
-    .analysis-section-title {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      font-weight: 700;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #4c51bf;
-      margin-bottom: 8px;
-    }
-
-    .analysis-section-title::before {
-      content: attr(data-icon);
-      font-size: 14px;
-    }
-
-    .analysis-section-body {
-      color: #1e293b;
-      font-size: 14px;
-      line-height: 1.7;
-      white-space: pre-wrap;
     }
 
     @keyframes fadeCopy {
@@ -541,85 +506,30 @@
       }
 
       .column {
-        box-shadow: none;
         border-radius: 16px;
         padding: 18px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #ececec;
       }
 
       .column-input {
         grid-row: auto;
       }
 
-      .output-title {
-        margin-left: 6px;
-        grid-column: auto;
-        grid-row: auto;
-        display: none;
-      }
-
       .messages {
         grid-column: 1;
         grid-row: auto;
-        grid-template-columns: 1fr;
-        gap: 20px;
       }
 
-      .message.assistant {
-        grid-column: auto;
-        grid-template-columns: 1fr;
-        gap: 16px;
+      .response-shell {
+        padding: 8px 0 24px;
       }
 
-      .analysis-card {
-        max-height: 60vh;
-        overflow: auto;
-        padding: 16px;
-        gap: 14px;
-      }
-
-      .analysis-user-card {
-        padding: 14px;
-      }
-
-      .analysis-user-title {
-        font-size: 12px;
-      }
-
-      .option-list::before {
-        content: "Movimientos sugeridos";
-        display: block;
-        font-weight: 700;
-        font-size: 13px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: #64748b;
-        margin-bottom: 8px;
+      .insight-text {
+        font-size: 26px;
       }
 
       textarea {
         min-height: 180px;
-      }
-
-      .option-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 6px;
-      }
-
-      .copy-button {
-        width: 100%;
-        justify-content: center;
-        padding: 14px 18px;
-        font-size: 16px;
-      }
-
-      .copy-button::after {
-        content: "Copiar respuesta";
-      }
-
-      .input-row button::after {
-        content: " situación";
       }
 
       .loader-desktop {
@@ -687,8 +597,6 @@
       </form>
     </section>
 
-    <div class="output-title analysis-title">Análisis</div>
-    <div class="output-title responses-title">Movimientos</div>
     <div class="messages" id="messages"></div>
   </div>
 </div>
@@ -714,9 +622,13 @@
   let messages = [];
   let currentContext = "General";
   let isLoading = false;
-  let analysisCardEl = null;
-  let responsesColumnEl = null;
+  let insightTextEl = null;
+  let reasoningToggleEl = null;
+  let analysisPanelEl = null;
+  let optionsListEl = null;
   let loaderDesktopEl = null;
+  let activeOption = null;
+  let lastUserText = "";
 
   const WELCOME =
     "Describe la situación.\n" +
@@ -736,7 +648,7 @@
 
     const title = document.createElement("div");
     title.className = "analysis-user-title";
-    title.textContent = "🧾 Situación analizada";
+    title.textContent = "Situación analizada";
 
     const body = document.createElement("div");
     body.className = "analysis-user-body";
@@ -759,54 +671,59 @@
   }
 
   function extractAnalysisSections(text) {
-    const normalized = text.replace(/\r\n/g, "\n").trim();
-    const lecturaIndex = normalized.search(/(?:🔍\s*)?Lectura r[áa]pida/i);
-    const pasandoIndex = normalized.search(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
-    const estrategiaIndex = normalized.search(/(?:🧠\s*)?Estrategia/i);
-    if (lecturaIndex === -1 || pasandoIndex === -1 || pasandoIndex <= lecturaIndex) {
+    try {
+      const normalized = text.replace(/\r\n/g, "\n").trim();
+      const lecturaIndex = normalized.search(/Lectura r[áa]pida/i);
+      const pasandoIndex = normalized.search(/Qu[eé]\s+est[aá]\s+pasando/i);
+      const estrategiaIndex = normalized.search(/Estrategia/i);
+      if (lecturaIndex === -1 || pasandoIndex === -1 || pasandoIndex <= lecturaIndex) {
+        return null;
+      }
+
+      const lecturaTitleMatch = normalized.match(/Lectura r[áa]pida/i);
+      const pasandoTitleMatch = normalized.match(/Qu[eé]\s+est[aá]\s+pasando/i);
+      const estrategiaTitleMatch = normalized.match(/Estrategia/i);
+      const lecturaTitleRaw = lecturaTitleMatch ? lecturaTitleMatch[0] : "Lectura rápida";
+      const pasandoTitleRaw = pasandoTitleMatch ? pasandoTitleMatch[0] : "Qué está pasando";
+      const estrategiaTitleRaw = estrategiaTitleMatch ? estrategiaTitleMatch[0] : "Estrategia";
+      const lecturaTitle = lecturaTitleRaw.trim();
+      const pasandoTitle = pasandoTitleRaw.trim();
+      const estrategiaTitle = estrategiaTitleRaw.trim();
+      const lecturaBody = normalized
+        .slice(lecturaIndex + lecturaTitleRaw.length, pasandoIndex)
+        .trim()
+        .replace(/^[:\-\s]+/, "");
+      let pasandoBody = "";
+      let estrategiaBody = "";
+
+      if (estrategiaIndex !== -1 && estrategiaIndex > pasandoIndex) {
+        pasandoBody = normalized
+          .slice(pasandoIndex + pasandoTitleRaw.length, estrategiaIndex)
+          .trim()
+          .replace(/^[:\-\s]+/, "");
+        estrategiaBody = normalized
+          .slice(estrategiaIndex + estrategiaTitleRaw.length)
+          .trim()
+          .replace(/^[:\-\s]+/, "");
+      } else {
+        pasandoBody = normalized
+          .slice(pasandoIndex + pasandoTitleRaw.length)
+          .trim()
+          .replace(/^[:\-\s]+/, "");
+      }
+
+      const sections = [
+        { title: lecturaTitle, body: lecturaBody },
+        { title: pasandoTitle, body: pasandoBody }
+      ];
+      if (estrategiaBody) {
+        sections.push({ title: estrategiaTitle, body: estrategiaBody });
+      }
+      return sections;
+    } catch (error) {
+      console.error(error);
       return null;
     }
-
-    const lecturaTitleMatch = normalized.match(/(?:🔍\s*)?Lectura r[áa]pida/i);
-    const pasandoTitleMatch = normalized.match(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
-    const estrategiaTitleMatch = normalized.match(/(?:🧠\s*)?Estrategia/i);
-    const lecturaTitleRaw = lecturaTitleMatch ? lecturaTitleMatch[0] : "Lectura rápida";
-    const pasandoTitleRaw = pasandoTitleMatch ? pasandoTitleMatch[0] : "Qué está pasando";
-    const estrategiaTitleRaw = estrategiaTitleMatch ? estrategiaTitleMatch[0] : "Estrategia";
-    const lecturaTitle = lecturaTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
-    const pasandoTitle = pasandoTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
-    const estrategiaTitle = estrategiaTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
-    const lecturaBody = normalized
-      .slice(lecturaIndex + lecturaTitleRaw.length, pasandoIndex)
-      .trim()
-      .replace(/^[:\-\s]+/, "");
-    let pasandoBody = "";
-    let estrategiaBody = "";
-
-    if (estrategiaIndex !== -1 && estrategiaIndex > pasandoIndex) {
-      pasandoBody = normalized
-        .slice(pasandoIndex + pasandoTitleRaw.length, estrategiaIndex)
-        .trim()
-        .replace(/^[:\-\s]+/, "");
-      estrategiaBody = normalized
-        .slice(estrategiaIndex + estrategiaTitleRaw.length)
-        .trim()
-        .replace(/^[:\-\s]+/, "");
-    } else {
-      pasandoBody = normalized
-        .slice(pasandoIndex + pasandoTitleRaw.length)
-        .trim()
-        .replace(/^[:\-\s]+/, "");
-    }
-
-    const sections = [
-      { title: lecturaTitle, body: lecturaBody, icon: "⚡" },
-      { title: pasandoTitle, body: pasandoBody, icon: "🧭" }
-    ];
-    if (estrategiaBody) {
-      sections.push({ title: estrategiaTitle, body: estrategiaBody, icon: "🧠" });
-    }
-    return sections;
   }
 
   function buildAnalysisSection(section) {
@@ -815,7 +732,6 @@
 
     const title = document.createElement("div");
     title.className = "analysis-section-title";
-    title.dataset.icon = section.icon;
     title.textContent = section.title;
 
     const body = document.createElement("div");
@@ -830,100 +746,201 @@
     return sectionEl;
   }
 
-  function addAssistantResponse(analysisText, options) {
-    const subtitles = {
-      A: "Conservadora",
-      B: "Balanceada",
-      C: "Decisiva"
-    };
-    if (analysisCardEl && analysisText) {
-      analysisCardEl.innerHTML = "";
-      const sections = extractAnalysisSections(analysisText);
-      if (sections) {
-        sections.forEach(section => {
-          analysisCardEl.appendChild(buildAnalysisSection(section));
-        });
-      } else {
-        analysisCardEl.textContent = analysisText;
-      }
+  function extractFirstSentence(text) {
+    const cleaned = text.replace(/^[\s:\-–—]+/, "").trim();
+    if (!cleaned) return "";
+    const match = cleaned.match(/[^.!?]+[.!?]/);
+    if (match) {
+      return match[0].trim();
     }
-    if (!responsesColumnEl) return;
-    const list = document.createElement("div");
-    list.className = "option-list";
-    options.forEach((option) => {
-      const optionDiv = document.createElement("div");
-      optionDiv.className = "option-block";
-      const header = document.createElement("div");
-      header.className = "option-header";
+    const firstLine = cleaned.split("\n").find(line => line.trim());
+    return (firstLine || cleaned).trim();
+  }
 
-      const title = document.createElement("div");
-      title.className = "option-title";
-      title.textContent = `Opción ${option.label}`;
-
-      const actions = document.createElement("div");
-      const subtitle = document.createElement("span");
-      subtitle.className = "option-subtitle";
-      subtitle.textContent = subtitles[option.label] || "";
-
-      const copyButton = document.createElement("button");
-      copyButton.type = "button";
-      copyButton.className = "copy-button";
-      copyButton.setAttribute("aria-label", "Copiar respuesta");
-      copyButton.textContent = "📋";
-      actions.appendChild(copyButton);
-
-      header.appendChild(title);
-      header.appendChild(subtitle);
-      header.appendChild(actions);
-
-      const text = document.createElement("div");
-      text.className = "option-text";
-      text.textContent = option.text;
-
-      copyButton.addEventListener("click", async () => {
-        try {
-          await navigator.clipboard.writeText(option.text);
-          const feedback = document.createElement("span");
-          feedback.className = "copy-feedback";
-          feedback.textContent = "Copiado";
-          actions.appendChild(feedback);
-          setTimeout(() => feedback.remove(), 1200);
-        } catch (error) {
-          console.error(error);
-        }
-      });
-
-      optionDiv.appendChild(header);
-      optionDiv.appendChild(text);
-      list.appendChild(optionDiv);
+  function findSectionText(text, startRegex, stopRegexes) {
+    const startMatch = text.match(startRegex);
+    if (!startMatch) return "";
+    const startIndex = text.search(startRegex);
+    const start = startIndex + startMatch[0].length;
+    let end = text.length;
+    stopRegexes.forEach((regex) => {
+      const sliceIndex = text.slice(start).search(regex);
+      if (sliceIndex !== -1) {
+        end = Math.min(end, start + sliceIndex);
+      }
     });
-    responsesColumnEl.innerHTML = "";
-    responsesColumnEl.appendChild(list);
-    messagesEl.scrollTop = messagesEl.scrollHeight;
+    return text.slice(start, end).trim();
+  }
+
+  function extractAppleInsight(rawAnalysisText) {
+    const fallback =
+      "Esta situación no está definida. Eso, en sí mismo, ya es una decisión.";
+    try {
+      if (!rawAnalysisText) return fallback;
+      const normalized = rawAnalysisText.replace(/\r\n/g, "\n").trim();
+      if (!normalized) return fallback;
+      const lecturaSection = findSectionText(
+        normalized,
+        /Lectura r[áa]pida/i,
+        [/Qu[eé]\s+est[aá]\s+pasando/i, /Estrategia/i, /Opc[ií]ón\s*[A-C]/i]
+      );
+      if (lecturaSection) {
+        const sentence = extractFirstSentence(lecturaSection);
+        if (sentence) return sentence;
+      }
+      const pasandoSection = findSectionText(
+        normalized,
+        /Qu[eé]\s+est[aá]\s+pasando/i,
+        [/Estrategia/i, /Opc[ií]ón\s*[A-C]/i]
+      );
+      if (pasandoSection) {
+        const sentence = extractFirstSentence(pasandoSection);
+        if (sentence) return sentence;
+      }
+      return fallback;
+    } catch (error) {
+      console.error(error);
+      return fallback;
+    }
+  }
+
+  function extractTradeoffLine(text) {
+    const clean = text.replace(/\r\n/g, "\n").trim();
+    if (!clean) return "";
+    const lines = clean.split("\n").map(line => line.trim()).filter(Boolean);
+    if (lines.length > 1) {
+      return lines[0].slice(0, 120);
+    }
+    const sentences = clean.split(/(?<=[.!?])\s+/).filter(Boolean);
+    if (sentences.length > 1) {
+      return sentences[0].trim().slice(0, 120);
+    }
+    return "";
+  }
+
+  function setActiveOption(label) {
+    activeOption = label;
+    if (!optionsListEl) return;
+    optionsListEl.querySelectorAll(".option-card").forEach(card => {
+      card.classList.toggle("is-active", card.dataset.label === label);
+    });
+  }
+
+  function addAssistantResponse(analysisText, options) {
+    try {
+      if (insightTextEl) {
+        insightTextEl.textContent = extractAppleInsight(analysisText || "");
+      }
+      if (analysisPanelEl) {
+        analysisPanelEl.innerHTML = "";
+        if (analysisText) {
+          analysisPanelEl.appendChild(buildUserMessageCard(lastUserText || ""));
+          const sections = extractAnalysisSections(analysisText);
+          if (sections) {
+            sections.forEach(section => {
+              analysisPanelEl.appendChild(buildAnalysisSection(section));
+            });
+          } else {
+            const plain = document.createElement("div");
+            plain.className = "analysis-section-body";
+            plain.textContent = analysisText;
+            analysisPanelEl.appendChild(plain);
+          }
+        }
+      }
+      if (reasoningToggleEl) {
+        reasoningToggleEl.style.display = analysisText ? "inline-flex" : "none";
+      }
+
+      if (!optionsListEl) return;
+      optionsListEl.innerHTML = "";
+      const optionTitles = {
+        A: "Esperar",
+        B: "Abrir diálogo",
+        C: "Forzar definición"
+      };
+      options.forEach((option) => {
+        const card = document.createElement("div");
+        card.className = "option-card";
+        card.dataset.label = option.label;
+
+        const title = document.createElement("div");
+        title.className = "option-title";
+        title.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
+
+        const tradeoff = document.createElement("div");
+        tradeoff.className = "option-tradeoff";
+        tradeoff.textContent = extractTradeoffLine(option.text);
+        if (tradeoff.textContent) {
+          card.classList.add("has-tradeoff");
+        }
+
+        const body = document.createElement("div");
+        body.className = "option-body";
+
+        const text = document.createElement("div");
+        text.className = "option-text";
+        text.textContent = option.text;
+
+        const copyButton = document.createElement("button");
+        copyButton.type = "button";
+        copyButton.className = "copy-button";
+        copyButton.setAttribute("aria-label", "Copiar texto");
+        copyButton.textContent = "Copiar texto";
+
+        copyButton.addEventListener("click", async (event) => {
+          event.stopPropagation();
+          try {
+            await navigator.clipboard.writeText(option.text);
+            copyButton.textContent = "Copiado ✓";
+            setTimeout(() => {
+              copyButton.textContent = "Copiar texto";
+            }, 1200);
+          } catch (error) {
+            console.error(error);
+          }
+        });
+
+        body.appendChild(text);
+        body.appendChild(copyButton);
+        card.appendChild(title);
+        card.appendChild(tradeoff);
+        card.appendChild(body);
+        card.addEventListener("click", () => {
+          setActiveOption(activeOption === option.label ? null : option.label);
+        });
+        optionsListEl.appendChild(card);
+      });
+      setActiveOption(null);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    } catch (error) {
+      console.error(error);
+    }
   }
 
   function parseResponse(answer) {
-    if (!answer) return null;
-    const normalized = answer.replace(/\r\n/g, "\n");
-    const analysisMatch = normalized.match(
-      /(?:🔍\s*)?Lectura r[áa]pida[\s\S]*?(?=(?:💬\s*)?Qu[eé]\s+conviene\s+hacer\s+ahora|$)/i
-    );
-    const analysisContent = analysisMatch ? analysisMatch[0].trim() : "";
-
-    const optionRegex = (label) =>
-      new RegExp(
-        `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
-        "i"
-      );
-    const options = ["A", "B", "C"].map((label) => {
-      const match = normalized.match(optionRegex(label));
-      return match ? { label, text: match[1].trim() } : null;
-    });
-
-    if (options.every(Boolean)) {
+    try {
+      if (!answer) return { analysis: "", options: [] };
+      const normalized = answer.replace(/\r\n/g, "\n");
+      const optionRegex = (label) =>
+        new RegExp(
+          `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
+          "i"
+        );
+      const options = ["A", "B", "C"]
+        .map((label) => {
+          const match = normalized.match(optionRegex(label));
+          return match ? { label, text: match[1].trim() } : null;
+        })
+        .filter(Boolean);
+      const firstOptionIndex = normalized.search(/Opc[ií]ón\s*[A-C]/i);
+      const analysisContent =
+        firstOptionIndex !== -1 ? normalized.slice(0, firstOptionIndex).trim() : normalized.trim();
       return { analysis: analysisContent, options };
+    } catch (error) {
+      console.error(error);
+      return { analysis: answer || "", options: [] };
     }
-    return null;
   }
 
   function setLoading(state) {
@@ -959,6 +976,7 @@
   });
 
   async function sendMessage(text) {
+    lastUserText = text;
     const profileParts = [];
     if (genderSelect.value) {
       profileParts.push(genderSelect.value);
@@ -978,25 +996,45 @@
     messages = [{ role: "user", content: payloadFinal }];
 
     const assistantShell = document.createElement("div");
-    assistantShell.className = "message assistant";
+    assistantShell.className = "response-shell";
 
-    const analysisColumn = document.createElement("div");
-    analysisColumn.className = "analysis-column";
+    const insightBlock = document.createElement("div");
+    insightBlock.className = "insight-block";
 
-    analysisCardEl = document.createElement("div");
-    analysisCardEl.className = "analysis-card";
+    const insightLabel = document.createElement("div");
+    insightLabel.className = "insight-label";
+    insightLabel.textContent = "INSIGHT";
+
+    insightTextEl = document.createElement("div");
+    insightTextEl.className = "insight-text";
+    insightTextEl.textContent = "…";
+
+    reasoningToggleEl = document.createElement("button");
+    reasoningToggleEl.type = "button";
+    reasoningToggleEl.className = "reasoning-toggle";
+    reasoningToggleEl.textContent = "Ver razonamiento";
+
+    insightBlock.appendChild(insightLabel);
+    insightBlock.appendChild(insightTextEl);
+    insightBlock.appendChild(reasoningToggleEl);
+
+    analysisPanelEl = document.createElement("div");
+    analysisPanelEl.className = "analysis-panel";
 
     loaderDesktopEl = buildLoaderPanel("loader-desktop");
-    analysisColumn.appendChild(buildUserMessageCard(text));
-    analysisColumn.appendChild(loaderDesktopEl);
-    analysisColumn.appendChild(analysisCardEl);
 
-    responsesColumnEl = document.createElement("div");
-    responsesColumnEl.className = "responses-column";
+    optionsListEl = document.createElement("div");
+    optionsListEl.className = "options-list";
 
-    assistantShell.appendChild(analysisColumn);
-    assistantShell.appendChild(responsesColumnEl);
+    assistantShell.appendChild(insightBlock);
+    assistantShell.appendChild(loaderDesktopEl);
+    assistantShell.appendChild(analysisPanelEl);
+    assistantShell.appendChild(optionsListEl);
     messagesEl.appendChild(assistantShell);
+
+    reasoningToggleEl.addEventListener("click", () => {
+      analysisPanelEl.classList.toggle("is-open");
+    });
 
     setLoading(true);
     try {
@@ -1018,15 +1056,7 @@
       }
 
       const parsed = parseResponse(answerText || "");
-      if (parsed) {
-        addAssistantResponse(parsed.analysis, parsed.options);
-      } else {
-        if (analysisCardEl) {
-          analysisCardEl.textContent = answerText || "";
-        } else {
-          addMessage("assistant", answerText || "");
-        }
-      }
+      addAssistantResponse(parsed.analysis, parsed.options);
       messages.push({ role: "assistant", content: answerText });
     } catch (error) {
       console.error(error);
