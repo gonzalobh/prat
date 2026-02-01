@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>BetweenLines</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Analiza intención y subtexto. Te dice qué pasa y qué responder." />
+
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #f4f5f7;
+      color: #0f172a;
+      min-height: 100vh;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    .app-shell {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 20px 28px 10px;
+      position: relative;
+    }
+
+    .app-title {
+      font-size: 18px;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .menu-button {
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: #0f172a;
+    }
+
+    .menu {
+      position: absolute;
+      right: 28px;
+      top: 56px;
+      margin-top: 8px;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 14px;
+      padding: 8px;
+      display: none;
+      z-index: 5;
+    }
+
+    .menu.open {
+      display: block;
+    }
+
+    .menu button {
+      background: none;
+      color: #0f172a;
+      width: 100%;
+      text-align: left;
+      padding: 8px;
+    }
+
+    .workspace {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 2.4fr 5.2fr 3fr;
+      grid-template-rows: auto 1fr;
+      gap: 34px;
+      padding: 12px 36px 32px;
+      min-height: 0;
+    }
+
+    .column {
+      background: #ffffff;
+      border-radius: 20px;
+      border: 1px solid #e2e8f0;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+      box-shadow: 0 18px 44px rgba(15, 23, 42, 0.08);
+    }
+
+    .column-header {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #64748b;
+      margin-bottom: 18px;
+    }
+
+    .input-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .context-selector {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .context-button {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      color: #0f172a;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 500;
+      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+    }
+
+    .context-button:hover {
+      border-color: #94a3b8;
+      color: #1d4ed8;
+    }
+
+    .context-button.active {
+      background: #1d4ed8;
+      color: #fff;
+      border-color: #1d4ed8;
+    }
+
+    .input-row {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .profile-row {
+      background: #f8fafc;
+      border-radius: 16px;
+      border: 1px solid #e2e8f0;
+      padding: 14px;
+    }
+
+    .profile-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #475569;
+    }
+
+    select {
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      background: #ffffff;
+      font-size: 14px;
+      color: #0f172a;
+      outline: none;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    select:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+
+    textarea {
+      width: 100%;
+      padding: 16px 18px;
+      font-size: 16px;
+      border-radius: 14px;
+      border: 1px solid #cbd5f5;
+      outline: none;
+      resize: none;
+      line-height: 1.6;
+      min-height: 220px;
+      background: #f8fafc;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    textarea:focus {
+      border-color: #6366f1;
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+
+    button {
+      padding: 14px 18px;
+      border-radius: 12px;
+      border: none;
+      background: #1d4ed8;
+      color: #fff;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+      box-shadow: 0 10px 18px rgba(37, 99, 235, 0.22);
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 26px rgba(37, 99, 235, 0.28);
+      background: #1e40af;
+    }
+
+    button:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    .column-input {
+      grid-row: 1 / 3;
+    }
+
+    .output-title {
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: #64748b;
+      align-self: center;
+    }
+
+    .analysis-title {
+      grid-column: 2;
+      grid-row: 1;
+    }
+
+    .responses-title {
+      grid-column: 3;
+      grid-row: 1;
+    }
+
+    .messages {
+      grid-column: 2 / 4;
+      grid-row: 2;
+      flex: 1;
+      overflow-y: auto;
+      display: grid;
+      grid-template-columns: 5.2fr 3fr;
+      gap: 26px;
+      padding-right: 4px;
+    }
+
+    .message {
+      padding: 0;
+      border-radius: 0;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      background: transparent;
+    }
+
+    .message.user {
+      display: none;
+    }
+
+    .message.assistant {
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: 5.2fr 3fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .analysis-column {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .responses-column {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+      opacity: 0.95;
+    }
+
+    .option-list {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .option-block {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 16px;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+    }
+
+    .option-block:hover {
+      border-color: #c7d2fe;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+      transform: translateY(-1px);
+    }
+
+    .option-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+    }
+
+    .option-title {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 700;
+      font-size: 16px;
+    }
+
+    .option-subtitle {
+      font-size: 0;
+      color: #1d4ed8;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+
+    .option-block:nth-child(1) .option-subtitle::before {
+      content: "Suave";
+      font-size: 11px;
+    }
+
+    .option-block:nth-child(2) .option-subtitle::before {
+      content: "Intermedia";
+      font-size: 11px;
+    }
+
+    .option-block:nth-child(3) .option-subtitle::before {
+      content: "Firme";
+      font-size: 11px;
+    }
+
+    .copy-button {
+      border: none;
+      background: #1d4ed8;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 12px 18px;
+      border-radius: 12px;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 12px 22px rgba(37, 99, 235, 0.25);
+      transition: transform 0.15s ease, box-shadow 0.2s ease, background 0.2s ease;
+    }
+
+    .copy-button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 16px 26px rgba(37, 99, 235, 0.32);
+      background: #1e40af;
+    }
+
+    .copy-button::after {
+      content: "Copiar";
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #1d4ed8;
+      margin-left: 8px;
+      animation: fadeCopy 1.2s ease forwards;
+    }
+
+    .copy-feedback::after {
+      content: " ✓";
+    }
+
+    .option-text {
+      white-space: pre-wrap;
+      color: #0f172a;
+      font-size: 14px;
+    }
+
+    .analysis-card {
+      background: #eef2ff;
+      border: 1px solid #c7d2fe;
+      border-radius: 18px;
+      padding: 18px;
+      color: #1e293b;
+      font-size: 15px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+      box-shadow: inset 0 0 0 1px rgba(99, 102, 241, 0.08);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .analysis-user-card {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 18px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      box-shadow: 0 14px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    .analysis-user-title {
+      font-weight: 700;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #1d4ed8;
+    }
+
+    .analysis-user-body {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      padding: 12px 14px;
+      font-size: 14px;
+      line-height: 1.6;
+      color: #0f172a;
+      white-space: pre-wrap;
+    }
+
+    .analysis-section {
+      background: #ffffff;
+      border: 1px solid #dbe4ff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, 0.06);
+    }
+
+    .loader-panel {
+      display: none;
+      align-items: center;
+      gap: 12px;
+      padding: 16px;
+      border-radius: 14px;
+      border: 1px dashed #c7d2fe;
+      background: #f8fafc;
+      color: #1e293b;
+      font-weight: 600;
+    }
+
+    .loader-spinner {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      border: 3px solid #c7d2fe;
+      border-top-color: #1d4ed8;
+      animation: spin 0.9s linear infinite;
+    }
+
+    .loader-desktop {
+      display: none;
+    }
+
+    .loader-mobile {
+      display: none;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    .analysis-section-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 700;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #4c51bf;
+      margin-bottom: 8px;
+    }
+
+    .analysis-section-title::before {
+      content: attr(data-icon);
+      font-size: 14px;
+    }
+
+    .analysis-section-body {
+      color: #1e293b;
+      font-size: 14px;
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    @keyframes fadeCopy {
+      0% {
+        opacity: 0;
+        transform: translateY(4px);
+      }
+      20% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-4px);
+      }
+    }
+
+    @media (max-width: 1023px) {
+      .workspace {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+      }
+
+      .column {
+        box-shadow: none;
+        border-radius: 16px;
+        padding: 18px;
+        border: 1px solid #e2e8f0;
+      }
+
+      .column-input {
+        grid-row: auto;
+      }
+
+      .output-title {
+        margin-left: 6px;
+        grid-column: auto;
+        grid-row: auto;
+        display: none;
+      }
+
+      .messages {
+        grid-column: 1;
+        grid-row: auto;
+        grid-template-columns: 1fr;
+        gap: 20px;
+      }
+
+      .message.assistant {
+        grid-column: auto;
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+
+      .analysis-card {
+        max-height: 60vh;
+        overflow: auto;
+        padding: 16px;
+        gap: 14px;
+      }
+
+      .analysis-user-card {
+        padding: 14px;
+      }
+
+      .analysis-user-title {
+        font-size: 12px;
+      }
+
+      .option-list::before {
+        content: "Respuestas sugeridas";
+        display: block;
+        font-weight: 700;
+        font-size: 13px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #64748b;
+        margin-bottom: 8px;
+      }
+
+      textarea {
+        min-height: 180px;
+      }
+
+      .option-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+      }
+
+      .copy-button {
+        width: 100%;
+        justify-content: center;
+        padding: 14px 18px;
+        font-size: 16px;
+      }
+
+      .copy-button::after {
+        content: "Copiar respuesta";
+      }
+
+      .input-row button::after {
+        content: " mensaje";
+      }
+
+      .loader-desktop {
+        display: none;
+      }
+
+      .loader-mobile.is-active {
+        display: flex;
+      }
+    }
+
+    @media (min-width: 1024px) {
+      .loader-desktop.is-active {
+        display: flex;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="app-shell">
+  <div class="top-bar">
+    <div class="app-title">BetweenLines</div>
+    <button class="menu-button" id="menuBtn">⋯</button>
+  </div>
+  <div class="menu" id="menu">
+    <button id="resetBtn">↺ Reiniciar chat</button>
+  </div>
+
+  <div class="workspace">
+    <section class="column column-input">
+      <div class="column-header">Mensaje recibido</div>
+      <form class="input-container" id="form">
+        <div class="context-selector" id="contextSelector">
+          <button type="button" class="context-button active" data-context="General">General</button>
+          <button type="button" class="context-button" data-context="Citas">Citas</button>
+          <button type="button" class="context-button" data-context="Pareja">Pareja</button>
+          <button type="button" class="context-button" data-context="Ex">Ex</button>
+          <button type="button" class="context-button" data-context="Coqueteo">Coqueteo</button>
+        </div>
+        <div class="input-row profile-row">
+          <label for="genderSelect" class="profile-label">👤 Perfil de la persona (opcional)</label>
+          <select id="genderSelect">
+            <option value="">Género: No especificar</option>
+            <option value="hombre">Género: Masculino</option>
+            <option value="mujer">Género: Femenino</option>
+          </select>
+          <select id="ageSelect">
+            <option value="">Edad: No especificar</option>
+            <option value="18–25">Edad: 18–25</option>
+            <option value="26–35">Edad: 26–35</option>
+            <option value="36–45">Edad: 36–45</option>
+            <option value="45+">Edad: 45+</option>
+          </select>
+        </div>
+        <div class="input-row">
+          <textarea id="input" rows="2" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off"></textarea>
+          <button type="submit">Analizar</button>
+          <div class="loader-panel loader-mobile" id="loaderMobile">
+            <span class="loader-spinner" aria-hidden="true"></span>
+            <span>Analizando mensaje…</span>
+          </div>
+        </div>
+      </form>
+    </section>
+
+    <div class="output-title analysis-title">Análisis</div>
+    <div class="output-title responses-title">Respuestas</div>
+    <div class="messages" id="messages"></div>
+  </div>
+</div>
+
+<script>
+  const API_URL = "https://hotel-chat-proxy.vercel.app/api/t3";
+
+  const messagesEl = document.getElementById("messages");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const menuBtn = document.getElementById("menuBtn");
+  const menu = document.getElementById("menu");
+  const resetBtn = document.getElementById("resetBtn");
+  const contextSelector = document.getElementById("contextSelector");
+  const contextButtons = contextSelector.querySelectorAll(".context-button");
+  const submitButton = form.querySelector("button[type='submit']");
+  const genderSelect = document.getElementById("genderSelect");
+  const ageSelect = document.getElementById("ageSelect");
+  const loaderMobile = document.getElementById("loaderMobile");
+
+  let messages = [];
+  let currentContext = "General";
+  let isLoading = false;
+  let analysisCardEl = null;
+  let responsesColumnEl = null;
+  let loaderDesktopEl = null;
+
+  const WELCOME =
+    "Pega el mensaje que recibiste.\n" +
+    "Te digo el subtexto y te doy 3 respuestas.";
+
+  function addMessage(role, text) {
+    const div = document.createElement("div");
+    div.className = `message ${role}`;
+    div.textContent = text;
+    messagesEl.appendChild(div);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function buildUserMessageCard(text) {
+    const wrapper = document.createElement("div");
+    wrapper.className = "analysis-user-card";
+
+    const title = document.createElement("div");
+    title.className = "analysis-user-title";
+    title.textContent = "📨 Mensaje analizado";
+
+    const body = document.createElement("div");
+    body.className = "analysis-user-body";
+    body.textContent = text;
+
+    wrapper.appendChild(title);
+    wrapper.appendChild(body);
+
+    return wrapper;
+  }
+
+  function buildLoaderPanel(type) {
+    const loader = document.createElement("div");
+    loader.className = `loader-panel ${type}`;
+    loader.innerHTML = `
+      <span class="loader-spinner" aria-hidden="true"></span>
+      <span>Analizando mensaje…</span>
+    `;
+    return loader;
+  }
+
+  function extractAnalysisSections(text) {
+    const normalized = text.replace(/\r\n/g, "\n").trim();
+    const lecturaIndex = normalized.search(/(?:🔍\s*)?Lectura r[áa]pida/i);
+    const pasandoIndex = normalized.search(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
+    const estrategiaIndex = normalized.search(/(?:🧠\s*)?Estrategia/i);
+    if (lecturaIndex === -1 || pasandoIndex === -1 || pasandoIndex <= lecturaIndex) {
+      return null;
+    }
+
+    const lecturaTitleMatch = normalized.match(/(?:🔍\s*)?Lectura r[áa]pida/i);
+    const pasandoTitleMatch = normalized.match(/(?:💬\s*)?Qu[eé]\s+est[aá]\s+pasando/i);
+    const estrategiaTitleMatch = normalized.match(/(?:🧠\s*)?Estrategia/i);
+    const lecturaTitleRaw = lecturaTitleMatch ? lecturaTitleMatch[0] : "Lectura rápida";
+    const pasandoTitleRaw = pasandoTitleMatch ? pasandoTitleMatch[0] : "Qué está pasando";
+    const estrategiaTitleRaw = estrategiaTitleMatch ? estrategiaTitleMatch[0] : "Estrategia";
+    const lecturaTitle = lecturaTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
+    const pasandoTitle = pasandoTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
+    const estrategiaTitle = estrategiaTitleRaw.replace(/^[^A-Za-zÁÉÍÓÚáéíóúÑñ]+/, "").trim();
+    const lecturaBody = normalized
+      .slice(lecturaIndex + lecturaTitleRaw.length, pasandoIndex)
+      .trim()
+      .replace(/^[:\-\s]+/, "");
+    let pasandoBody = "";
+    let estrategiaBody = "";
+
+    if (estrategiaIndex !== -1 && estrategiaIndex > pasandoIndex) {
+      pasandoBody = normalized
+        .slice(pasandoIndex + pasandoTitleRaw.length, estrategiaIndex)
+        .trim()
+        .replace(/^[:\-\s]+/, "");
+      estrategiaBody = normalized
+        .slice(estrategiaIndex + estrategiaTitleRaw.length)
+        .trim()
+        .replace(/^[:\-\s]+/, "");
+    } else {
+      pasandoBody = normalized
+        .slice(pasandoIndex + pasandoTitleRaw.length)
+        .trim()
+        .replace(/^[:\-\s]+/, "");
+    }
+
+    const sections = [
+      { title: lecturaTitle, body: lecturaBody, icon: "⚡" },
+      { title: pasandoTitle, body: pasandoBody, icon: "🧭" }
+    ];
+    if (estrategiaBody) {
+      sections.push({ title: estrategiaTitle, body: estrategiaBody, icon: "🧠" });
+    }
+    return sections;
+  }
+
+  function buildAnalysisSection(section) {
+    const sectionEl = document.createElement("div");
+    sectionEl.className = "analysis-section";
+
+    const title = document.createElement("div");
+    title.className = "analysis-section-title";
+    title.dataset.icon = section.icon;
+    title.textContent = section.title;
+
+    const body = document.createElement("div");
+    body.className = "analysis-section-body";
+    body.textContent = section.body;
+
+    sectionEl.appendChild(title);
+    if (section.body) {
+      sectionEl.appendChild(body);
+    }
+
+    return sectionEl;
+  }
+
+  function addAssistantResponse(analysisText, options) {
+    const subtitles = {
+      A: "Segura",
+      B: "Intermedia",
+      C: "Retirada"
+    };
+    if (analysisCardEl && analysisText) {
+      analysisCardEl.innerHTML = "";
+      const sections = extractAnalysisSections(analysisText);
+      if (sections) {
+        sections.forEach(section => {
+          analysisCardEl.appendChild(buildAnalysisSection(section));
+        });
+      } else {
+        analysisCardEl.textContent = analysisText;
+      }
+    }
+    if (!responsesColumnEl) return;
+    const list = document.createElement("div");
+    list.className = "option-list";
+    options.forEach((option) => {
+      const optionDiv = document.createElement("div");
+      optionDiv.className = "option-block";
+      const header = document.createElement("div");
+      header.className = "option-header";
+
+      const title = document.createElement("div");
+      title.className = "option-title";
+      title.textContent = `Opción ${option.label}`;
+
+      const actions = document.createElement("div");
+      const subtitle = document.createElement("span");
+      subtitle.className = "option-subtitle";
+      subtitle.textContent = subtitles[option.label] || "";
+
+      const copyButton = document.createElement("button");
+      copyButton.type = "button";
+      copyButton.className = "copy-button";
+      copyButton.setAttribute("aria-label", "Copiar respuesta");
+      copyButton.textContent = "📋";
+      actions.appendChild(copyButton);
+
+      header.appendChild(title);
+      header.appendChild(subtitle);
+      header.appendChild(actions);
+
+      const text = document.createElement("div");
+      text.className = "option-text";
+      text.textContent = option.text;
+
+      copyButton.addEventListener("click", async () => {
+        try {
+          await navigator.clipboard.writeText(option.text);
+          const feedback = document.createElement("span");
+          feedback.className = "copy-feedback";
+          feedback.textContent = "Copiado";
+          actions.appendChild(feedback);
+          setTimeout(() => feedback.remove(), 1200);
+        } catch (error) {
+          console.error(error);
+        }
+      });
+
+      optionDiv.appendChild(header);
+      optionDiv.appendChild(text);
+      list.appendChild(optionDiv);
+    });
+    responsesColumnEl.innerHTML = "";
+    responsesColumnEl.appendChild(list);
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function parseResponse(answer) {
+    if (!answer) return null;
+    const normalized = answer.replace(/\r\n/g, "\n");
+    const analysisMatch = normalized.match(
+      /(?:🔍\s*)?Lectura r[áa]pida[\s\S]*?(?=(?:💬\s*)?Qu[eé]\s+conviene\s+hacer\s+ahora|$)/i
+    );
+    const analysisContent = analysisMatch ? analysisMatch[0].trim() : "";
+
+    const optionRegex = (label) =>
+      new RegExp(
+        `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
+        "i"
+      );
+    const options = ["A", "B", "C"].map((label) => {
+      const match = normalized.match(optionRegex(label));
+      return match ? { label, text: match[1].trim() } : null;
+    });
+
+    if (options.every(Boolean)) {
+      return { analysis: analysisContent, options };
+    }
+    return null;
+  }
+
+  function setLoading(state) {
+    isLoading = state;
+    submitButton.disabled = state;
+    submitButton.textContent = state ? "Analizando…" : "Analizar";
+    loaderMobile.classList.toggle("is-active", state);
+    if (loaderDesktopEl) {
+      loaderDesktopEl.classList.toggle("is-active", state);
+    }
+  }
+
+  function loadChat() {
+    messages = [];
+    addMessage("assistant", WELCOME);
+  }
+
+  function setContext(context) {
+    currentContext = context;
+    contextButtons.forEach(button => {
+      button.classList.toggle("active", button.dataset.context === context);
+    });
+  }
+
+  contextButtons.forEach(button => {
+    button.addEventListener("click", () => {
+      setContext(button.dataset.context);
+    });
+  });
+
+  async function sendMessage(text) {
+    const profileParts = [];
+    if (genderSelect.value) {
+      profileParts.push(genderSelect.value);
+    }
+    if (ageSelect.value) {
+      profileParts.push(ageSelect.value);
+    }
+    const profileLine = profileParts.length ? `[Perfil: ${profileParts.join(", ")}]` : "";
+    const payloadLines = [`[Contexto: ${currentContext}]`];
+    if (profileLine) {
+      payloadLines.push(profileLine);
+    }
+    payloadLines.push(text);
+    const payloadFinal = payloadLines.join("\n");
+
+    messagesEl.innerHTML = "";
+    messages = [{ role: "user", content: payloadFinal }];
+
+    const assistantShell = document.createElement("div");
+    assistantShell.className = "message assistant";
+
+    const analysisColumn = document.createElement("div");
+    analysisColumn.className = "analysis-column";
+
+    analysisCardEl = document.createElement("div");
+    analysisCardEl.className = "analysis-card";
+
+    loaderDesktopEl = buildLoaderPanel("loader-desktop");
+    analysisColumn.appendChild(buildUserMessageCard(text));
+    analysisColumn.appendChild(loaderDesktopEl);
+    analysisColumn.appendChild(analysisCardEl);
+
+    responsesColumnEl = document.createElement("div");
+    responsesColumnEl.className = "responses-column";
+
+    assistantShell.appendChild(analysisColumn);
+    assistantShell.appendChild(responsesColumnEl);
+    messagesEl.appendChild(assistantShell);
+
+    setLoading(true);
+    try {
+      const res = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages })
+      });
+
+      const rawText = await res.text();
+      let answerText = rawText;
+      try {
+        const data = JSON.parse(rawText);
+        if (data && typeof data.answer === "string") {
+          answerText = data.answer;
+        }
+      } catch (error) {
+        console.error(error);
+      }
+
+      const parsed = parseResponse(answerText || "");
+      if (parsed) {
+        addAssistantResponse(parsed.analysis, parsed.options);
+      } else {
+        if (analysisCardEl) {
+          analysisCardEl.textContent = answerText || "";
+        } else {
+          addMessage("assistant", answerText || "");
+        }
+      }
+      messages.push({ role: "assistant", content: answerText });
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  form.addEventListener("submit", e => {
+    e.preventDefault();
+    if (isLoading) return;
+    const text = input.value.trim();
+    if (!text) return;
+    input.value = "";
+    input.style.height = "";
+    sendMessage(text);
+  });
+
+  function autoGrowTextarea() {
+    const styles = getComputedStyle(input);
+    const lineHeight = parseFloat(styles.lineHeight) || 24;
+    const maxHeight = lineHeight * 8;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`;
+  }
+
+  input.addEventListener("input", autoGrowTextarea);
+  input.addEventListener("keydown", event => {
+    if (event.key === "Enter" && !event.shiftKey) {
+      event.preventDefault();
+      form.requestSubmit();
+    }
+  });
+  autoGrowTextarea();
+
+  menuBtn.onclick = () => menu.classList.toggle("open");
+  resetBtn.onclick = () => {
+    messages = [];
+    messagesEl.innerHTML = "";
+    addMessage("assistant", WELCOME);
+    setContext("General");
+    genderSelect.value = "";
+    ageSelect.value = "";
+    menu.classList.remove("open");
+  };
+
+  loadChat();
+</script>
+
+</body>
+</html>
