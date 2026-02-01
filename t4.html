@@ -2,9 +2,9 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8" />
-  <title>BetweenLines</title>
+  <title>Decision Clarifier</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Analiza intención y subtexto. Te dice qué pasa y qué responder." />
+  <meta name="description" content="Aclara decisiones humanas. Entiende la situación, el riesgo y el próximo movimiento." />
 
   <style>
     body {
@@ -148,6 +148,21 @@
       border-radius: 16px;
       border: 1px solid #e2e8f0;
       padding: 14px;
+    }
+
+    .profile-row.is-collapsed {
+      display: none;
+    }
+
+    .advanced-toggle {
+      background: none;
+      border: none;
+      color: #1d4ed8;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 0;
+      cursor: pointer;
+      text-align: left;
     }
 
     .profile-label {
@@ -330,17 +345,17 @@
     }
 
     .option-block:nth-child(1) .option-subtitle::before {
-      content: "Suave";
+      content: "Conservadora";
       font-size: 11px;
     }
 
     .option-block:nth-child(2) .option-subtitle::before {
-      content: "Intermedia";
+      content: "Balanceada";
       font-size: 11px;
     }
 
     .option-block:nth-child(3) .option-subtitle::before {
-      content: "Firme";
+      content: "Decisiva";
       font-size: 11px;
     }
 
@@ -572,7 +587,7 @@
       }
 
       .option-list::before {
-        content: "Respuestas sugeridas";
+        content: "Movimientos sugeridos";
         display: block;
         font-weight: 700;
         font-size: 13px;
@@ -604,7 +619,7 @@
       }
 
       .input-row button::after {
-        content: " mensaje";
+        content: " situación";
       }
 
       .loader-desktop {
@@ -627,7 +642,7 @@
 
 <div class="app-shell">
   <div class="top-bar">
-    <div class="app-title">BetweenLines</div>
+    <div class="app-title">Decision Clarifier</div>
     <button class="menu-button" id="menuBtn">⋯</button>
   </div>
   <div class="menu" id="menu">
@@ -636,16 +651,17 @@
 
   <div class="workspace">
     <section class="column column-input">
-      <div class="column-header">Mensaje recibido</div>
+      <div class="column-header">Describe la situación</div>
       <form class="input-container" id="form">
         <div class="context-selector" id="contextSelector">
           <button type="button" class="context-button active" data-context="General">General</button>
-          <button type="button" class="context-button" data-context="Citas">Citas</button>
-          <button type="button" class="context-button" data-context="Pareja">Pareja</button>
-          <button type="button" class="context-button" data-context="Ex">Ex</button>
-          <button type="button" class="context-button" data-context="Coqueteo">Coqueteo</button>
+          <button type="button" class="context-button" data-context="Negociación">Negociación</button>
+          <button type="button" class="context-button" data-context="Trabajo / Política interna">Trabajo / Política interna</button>
+          <button type="button" class="context-button" data-context="Cliente / Ventas">Cliente / Ventas</button>
+          <button type="button" class="context-button" data-context="Carrera / Oferta laboral">Carrera / Oferta laboral</button>
         </div>
-        <div class="input-row profile-row">
+        <button type="button" class="advanced-toggle" id="advancedToggle">Ajustes avanzados (opcional)</button>
+        <div class="input-row profile-row is-collapsed" id="profileRow">
           <label for="genderSelect" class="profile-label">👤 Perfil de la persona (opcional)</label>
           <select id="genderSelect">
             <option value="">Género: No especificar</option>
@@ -661,18 +677,18 @@
           </select>
         </div>
         <div class="input-row">
-          <textarea id="input" rows="2" placeholder="Pega aquí el mensaje que te llegó…" autocomplete="off"></textarea>
+          <textarea id="input" rows="2" placeholder="Describe la situación (o pega el texto/email). Sé concreto." autocomplete="off"></textarea>
           <button type="submit">Analizar</button>
           <div class="loader-panel loader-mobile" id="loaderMobile">
             <span class="loader-spinner" aria-hidden="true"></span>
-            <span>Analizando mensaje…</span>
+            <span>Analizando situación…</span>
           </div>
         </div>
       </form>
     </section>
 
     <div class="output-title analysis-title">Análisis</div>
-    <div class="output-title responses-title">Respuestas</div>
+    <div class="output-title responses-title">Movimientos</div>
     <div class="messages" id="messages"></div>
   </div>
 </div>
@@ -689,6 +705,8 @@
   const contextSelector = document.getElementById("contextSelector");
   const contextButtons = contextSelector.querySelectorAll(".context-button");
   const submitButton = form.querySelector("button[type='submit']");
+  const advancedToggle = document.getElementById("advancedToggle");
+  const profileRow = document.getElementById("profileRow");
   const genderSelect = document.getElementById("genderSelect");
   const ageSelect = document.getElementById("ageSelect");
   const loaderMobile = document.getElementById("loaderMobile");
@@ -701,8 +719,8 @@
   let loaderDesktopEl = null;
 
   const WELCOME =
-    "Pega el mensaje que recibiste.\n" +
-    "Te digo el subtexto y te doy 3 respuestas.";
+    "Describe la situación.\n" +
+    "Te digo dónde estás parado y 3 movimientos posibles.";
 
   function addMessage(role, text) {
     const div = document.createElement("div");
@@ -718,7 +736,7 @@
 
     const title = document.createElement("div");
     title.className = "analysis-user-title";
-    title.textContent = "📨 Mensaje analizado";
+    title.textContent = "🧾 Situación analizada";
 
     const body = document.createElement("div");
     body.className = "analysis-user-body";
@@ -735,7 +753,7 @@
     loader.className = `loader-panel ${type}`;
     loader.innerHTML = `
       <span class="loader-spinner" aria-hidden="true"></span>
-      <span>Analizando mensaje…</span>
+      <span>Analizando situación…</span>
     `;
     return loader;
   }
@@ -814,9 +832,9 @@
 
   function addAssistantResponse(analysisText, options) {
     const subtitles = {
-      A: "Segura",
-      B: "Intermedia",
-      C: "Retirada"
+      A: "Conservadora",
+      B: "Balanceada",
+      C: "Decisiva"
     };
     if (analysisCardEl && analysisText) {
       analysisCardEl.innerHTML = "";
@@ -936,6 +954,10 @@
     });
   });
 
+  advancedToggle.addEventListener("click", () => {
+    profileRow.classList.toggle("is-collapsed");
+  });
+
   async function sendMessage(text) {
     const profileParts = [];
     if (genderSelect.value) {
@@ -1048,6 +1070,7 @@
     setContext("General");
     genderSelect.value = "";
     ageSelect.value = "";
+    profileRow.classList.add("is-collapsed");
     menu.classList.remove("open");
   };
 
