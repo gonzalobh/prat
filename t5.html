@@ -659,9 +659,7 @@
   let activeOption = null;
   let lastUserText = "";
 
-  const WELCOME =
-    "Describe la situación.\n" +
-    "Te digo dónde estás parado y 3 movimientos posibles.";
+  const WELCOME = "";
 
   function addMessage(role, text) {
     const div = document.createElement("div");
@@ -985,7 +983,9 @@
 
   function loadChat() {
     messages = [];
-    addMessage("assistant", WELCOME);
+    if (WELCOME) {
+      addMessage("assistant", WELCOME);
+    }
   }
 
   function setContext(context) {
@@ -1132,7 +1132,9 @@
   resetBtn.onclick = () => {
     messages = [];
     messagesEl.innerHTML = "";
-    addMessage("assistant", WELCOME);
+    if (WELCOME) {
+      addMessage("assistant", WELCOME);
+    }
     setContext("General");
     genderSelect.value = "";
     ageSelect.value = "";
