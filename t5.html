@@ -321,15 +321,24 @@
     }
 
     .reasoning-toggle {
-      background: none;
-      border: none;
-      color: #9ca3af;
+      background: transparent;
+      border: 1px solid #e5e7eb;
+      color: #6b7280;
       font-size: 12px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       cursor: pointer;
       align-self: center;
-      padding: 0;
+      padding: 8px 14px;
+      border-radius: 999px;
+      box-shadow: none;
+      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+    }
+
+    .reasoning-toggle:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+      transform: none;
     }
 
     .analysis-panel {
@@ -425,8 +434,7 @@
     .option-tradeoff {
       font-size: 12px;
       color: #9ca3af;
-      opacity: 0;
-      transition: opacity 0.2s ease;
+      opacity: 1;
       min-height: 16px;
     }
 
@@ -768,7 +776,8 @@
   }
 
   function extractFirstSentence(text) {
-    const cleaned = text.replace(/^[\s:\-–—]+/, "").trim();
+    let cleaned = text.replace(/^[\s:\-–—]+/, "").trim();
+    cleaned = cleaned.replace(/^situación\s*:/i, "").trim();
     if (!cleaned) return "";
     const match = cleaned.match(/[^.!?]+[.!?]/);
     if (match) {
