@@ -248,6 +248,17 @@
       max-width: 720px;
     }
 
+    /* Animación salida input */
+    .column-input {
+      transition: opacity 0.35s ease, transform 0.35s ease;
+    }
+
+    .column-input.is-hidden {
+      opacity: 0;
+      transform: translateY(-12px);
+      pointer-events: none;
+    }
+
     .message {
       padding: 0;
       border-radius: 0;
@@ -266,6 +277,18 @@
       flex-direction: column;
       gap: 28px;
       padding: 24px 0 36px;
+    }
+
+    /* Animación entrada respuesta */
+    .response-shell {
+      opacity: 0;
+      transform: translateY(16px);
+      transition: opacity 0.45s ease, transform 0.45s ease;
+    }
+
+    .response-shell.is-visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .insight-block {
@@ -606,6 +629,7 @@
   const contextSelector = document.getElementById("contextSelector");
   const contextButtons = contextSelector.querySelectorAll(".context-button");
   const submitButton = form.querySelector("button[type='submit']");
+  const columnInput = document.querySelector(".column-input");
   const advancedToggle = document.getElementById("advancedToggle");
   const profileRow = document.getElementById("profileRow");
   const genderSelect = document.getElementById("genderSelect");
@@ -970,6 +994,9 @@
 
   async function sendMessage(text) {
     lastUserText = text;
+    if (columnInput) {
+      columnInput.classList.add("is-hidden");
+    }
     const profileParts = [];
     if (genderSelect.value) {
       profileParts.push(genderSelect.value);
@@ -1024,6 +1051,9 @@
     assistantShell.appendChild(analysisPanelEl);
     assistantShell.appendChild(optionsListEl);
     messagesEl.appendChild(assistantShell);
+    requestAnimationFrame(() => {
+      assistantShell.classList.add("is-visible");
+    });
 
     reasoningToggleEl.addEventListener("click", () => {
       analysisPanelEl.classList.toggle("is-open");
@@ -1094,6 +1124,9 @@
     genderSelect.value = "";
     ageSelect.value = "";
     profileRow.classList.add("is-collapsed");
+    if (columnInput) {
+      columnInput.classList.remove("is-hidden");
+    }
     menu.classList.remove("open");
   };
 
