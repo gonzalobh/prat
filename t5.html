@@ -241,6 +241,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      flex: 1;
     }
 
     .column-input {
@@ -260,6 +261,7 @@
       transform: translateY(-12px);
       max-height: 0;
       margin: 0;
+      display: none;
       pointer-events: none;
     }
 
@@ -280,7 +282,7 @@
       display: flex;
       flex-direction: column;
       gap: 28px;
-      padding: 24px 0 36px;
+      padding: 16px 0 28px;
     }
 
     /* Animación entrada respuesta */
@@ -326,6 +328,42 @@
       line-height: 1.6;
       max-width: 520px;
       margin: 0 auto;
+    }
+
+    .movement-block {
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 18px;
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: center;
+    }
+
+    .movement-label {
+      font-size: 10px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: #9ca3af;
+      font-weight: 600;
+    }
+
+    .movement-title {
+      font-size: 24px;
+      font-weight: 600;
+      color: #0f172a;
+    }
+
+    .movement-subtext {
+      font-size: 14px;
+      color: #475569;
+      line-height: 1.6;
+    }
+
+    .movement-note {
+      font-size: 12px;
+      color: #9ca3af;
     }
 
     .reasoning-toggle {
@@ -417,6 +455,13 @@
       gap: 14px;
     }
 
+    .decision-intro {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      margin-bottom: 4px;
+    }
+
     .option-card {
       border: 1px solid #e5e7eb;
       border-radius: 16px;
@@ -433,6 +478,11 @@
       border-color: #d1d5db;
     }
 
+    .option-card.is-recommended {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+
     .option-title {
       font-weight: 600;
       font-size: 16px;
@@ -440,11 +490,31 @@
       letter-spacing: 0.01em;
     }
 
+    .option-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .option-badge {
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      color: #0f172a;
+      background: #e2e8f0;
+      padding: 4px 8px;
+      border-radius: 999px;
+      flex-shrink: 0;
+    }
+
     .option-tradeoff {
       font-size: 13px;
       color: #6b7280;
       opacity: 1;
       min-height: 18px;
+      line-height: 1.5;
     }
 
     .option-card.has-tradeoff:hover .option-tradeoff,
@@ -558,7 +628,7 @@
       }
 
       .response-shell {
-        padding: 8px 0 24px;
+        padding: 8px 0 20px;
       }
 
       .insight-text {
@@ -582,6 +652,10 @@
       .loader-desktop.is-active {
         display: flex;
       }
+    }
+
+    .messages.is-focused {
+      justify-content: center;
     }
 
     .closing-line {
@@ -871,7 +945,7 @@
     });
   }
 
-  function addAssistantResponse(analysisText, options) {
+  function addAssistantResponse(analysisText, _options) {
     try {
       if (insightTextEl) {
         insightTextEl.textContent = extractAppleInsight(analysisText || "");
@@ -899,32 +973,63 @@
 
       if (!optionsListEl) return;
       optionsListEl.innerHTML = "";
-      const optionTitles = {
-        A: "Esperar",
-        B: "Abrir diálogo",
-        C: "Forzar definición"
-      };
-      const optionConsequences = {
-        A: "Limpia la tensión inmediata. Debilita el control con el tiempo.",
-        B: "Reordena el marco. Asume exposición controlada.",
-        C: "Restablece autoridad. Genera fricción inmediata."
-      };
-      const optionOrder = ["B", "A", "C"];
-      const displayOptions = optionOrder
-        .map(label => options.find(option => option.label === label))
-        .filter(Boolean);
+      const displayOptions = [
+        {
+          label: "B",
+          title: "B — ABRIR DIÁLOGO (RECOMENDADA)",
+          tradeoff: "Trade-off: Reordena el marco sin escalar el conflicto.",
+          text:
+            "Abres un espacio controlado donde el cuestionamiento deja de ser público y vuelve a ser privado.\n" +
+            "No confrontas la crítica: la encuadras.\n" +
+            "Preservas autoridad sin forzarla y expones al otro a definirse sin empujarlo al choque.\n\n" +
+            "Esta opción no elimina el problema, pero corta su crecimiento."
+        },
+        {
+          label: "A",
+          title: "A — ESPERAR",
+          tradeoff: "Trade-off: Reduce la fricción ahora. Debilita el control después.",
+          text:
+            "No haces nada explícamente.\n" +
+            "La tensión baja en el corto plazo, pero el comportamiento queda validado por omisión.\n" +
+            "Cada nuevo cuestionamiento será más fácil para el otro y más costoso para ti revertirlo.\n\n" +
+            "Es cómoda, pero acumula costo silencioso."
+        },
+        {
+          label: "C",
+          title: "C — FORZAR DEFINICIÓN",
+          tradeoff: "Trade-off: Restablece autoridad. Genera fricción inmediata.",
+          text:
+            "Llevas el conflicto a un punto de no retorno.\n" +
+            "Marcas un límite claro y obligas a tomar posición, al precio de escalar la situación.\n" +
+            "Funciona solo si estás dispuesto a asumir consecuencias visibles.\n\n" +
+            "Es efectiva, pero quema capital relacional."
+        }
+      ];
       displayOptions.forEach((option) => {
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
+        if (option.label === "B") {
+          card.classList.add("is-recommended");
+        }
+
+        const titleRow = document.createElement("div");
+        titleRow.className = "option-title-row";
 
         const title = document.createElement("div");
         title.className = "option-title";
-        title.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
+        title.textContent = option.title;
+        titleRow.appendChild(title);
+        if (option.label === "B") {
+          const badge = document.createElement("span");
+          badge.className = "option-badge";
+          badge.textContent = "Recomendada";
+          titleRow.appendChild(badge);
+        }
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
-        tradeoff.textContent = optionConsequences[option.label] || "";
+        tradeoff.textContent = option.tradeoff || "";
         if (tradeoff.textContent) {
           card.classList.add("has-tradeoff");
         }
@@ -957,7 +1062,7 @@
 
         body.appendChild(text);
         body.appendChild(copyButton);
-        card.appendChild(title);
+        card.appendChild(titleRow);
         card.appendChild(tradeoff);
         card.appendChild(body);
         card.addEventListener("click", () => {
@@ -965,7 +1070,7 @@
         });
         optionsListEl.appendChild(card);
       });
-      setActiveOption(null);
+      setActiveOption("B");
       messagesEl.scrollTop = messagesEl.scrollHeight;
     } catch (error) {
       console.error(error);
@@ -1036,6 +1141,9 @@
     if (columnInput) {
       columnInput.classList.add("is-hidden");
     }
+    if (messagesEl) {
+      messagesEl.classList.add("is-focused");
+    }
     const profileParts = [];
     if (genderSelect.value) {
       profileParts.push(genderSelect.value);
@@ -1088,12 +1196,43 @@
 
     loaderDesktopEl = buildLoaderPanel("loader-desktop");
 
+    const movementBlock = document.createElement("div");
+    movementBlock.className = "movement-block";
+
+    const movementLabel = document.createElement("div");
+    movementLabel.className = "movement-label";
+    movementLabel.textContent = "MOVIMIENTO RECOMENDADO";
+
+    const movementTitle = document.createElement("div");
+    movementTitle.className = "movement-title";
+    movementTitle.textContent = "Abrir diálogo";
+
+    const movementSubtext = document.createElement("div");
+    movementSubtext.className = "movement-subtext";
+    movementSubtext.textContent =
+      "Es la única opción que corta la erosión sin escalar el conflicto ahora.";
+
+    const movementNote = document.createElement("div");
+    movementNote.className = "movement-note";
+    movementNote.textContent = "Si no haces nada más, esta es la jugada más inteligente.";
+
+    movementBlock.appendChild(movementLabel);
+    movementBlock.appendChild(movementTitle);
+    movementBlock.appendChild(movementSubtext);
+    movementBlock.appendChild(movementNote);
+
     optionsListEl = document.createElement("div");
     optionsListEl.className = "options-list";
 
+    const decisionIntro = document.createElement("div");
+    decisionIntro.className = "decision-intro";
+    decisionIntro.textContent = "Ahora toca decidir el próximo movimiento.";
+
     assistantShell.appendChild(insightBlock);
+    assistantShell.appendChild(movementBlock);
     assistantShell.appendChild(loaderDesktopEl);
     assistantShell.appendChild(analysisPanelEl);
+    assistantShell.appendChild(decisionIntro);
     assistantShell.appendChild(optionsListEl);
     messagesEl.appendChild(assistantShell);
     requestAnimationFrame(() => {
@@ -1173,6 +1312,9 @@
     profileRow.classList.add("is-collapsed");
     if (columnInput) {
       columnInput.classList.remove("is-hidden");
+    }
+    if (messagesEl) {
+      messagesEl.classList.remove("is-focused");
     }
     menu.classList.remove("open");
   };
