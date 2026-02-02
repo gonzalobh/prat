@@ -209,6 +209,8 @@
     .response-shell {
       width: 100%;
       max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
       display: flex;
       flex-direction: column;
       gap: 28px;
@@ -564,17 +566,10 @@
         display: none;
       }
 
-      .workspace.is-reflection-mode {
-        display: grid;
-        grid-template-columns: 1fr;
-      }
-
       .workspace.is-reflection-mode .messages {
         width: 100%;
-        max-width: 840px;
         margin: 0 auto;
         padding-right: 0;
-        align-items: stretch;
       }
 
       .workspace.is-reflection-mode .response-shell {
