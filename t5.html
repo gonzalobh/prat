@@ -304,10 +304,10 @@
     }
 
     .insight-label {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.32em;
-      color: #9ca3af;
+      letter-spacing: 0.36em;
+      color: #cbd5e1;
       font-weight: 600;
     }
 
@@ -320,25 +320,34 @@
       margin: 0 auto;
     }
 
+    .insight-subtext {
+      font-size: 14px;
+      color: #6b7280;
+      line-height: 1.6;
+      max-width: 520px;
+      margin: 0 auto;
+    }
+
     .reasoning-toggle {
       background: transparent;
-      border: 1px solid #e5e7eb;
-      color: #6b7280;
+      border: none;
+      color: #9ca3af;
       font-size: 12px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
+      letter-spacing: 0;
+      text-transform: none;
       cursor: pointer;
       align-self: center;
-      padding: 8px 14px;
-      border-radius: 999px;
+      padding: 4px 0;
+      border-radius: 0;
       box-shadow: none;
-      transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+      transition: color 0.2s ease;
     }
 
     .reasoning-toggle:hover {
-      background: #f9fafb;
-      border-color: #d1d5db;
+      background: transparent;
+      border-color: transparent;
       transform: none;
+      color: #6b7280;
     }
 
     .analysis-panel {
@@ -360,24 +369,24 @@
     }
 
     .analysis-user-card {
-      font-size: 13px;
-      color: #6b7280;
+      font-size: 12px;
+      color: #9ca3af;
       display: flex;
       flex-direction: column;
-      gap: 8px;
+      gap: 4px;
     }
 
     .analysis-user-title {
       font-weight: 600;
       letter-spacing: 0.08em;
       text-transform: uppercase;
-      font-size: 11px;
+      font-size: 10px;
     }
 
     .analysis-user-body {
-      font-size: 14px;
-      line-height: 1.6;
-      color: #111827;
+      font-size: 12px;
+      line-height: 1.5;
+      color: #6b7280;
       white-space: pre-wrap;
     }
 
@@ -432,10 +441,10 @@
     }
 
     .option-tradeoff {
-      font-size: 12px;
-      color: #9ca3af;
+      font-size: 13px;
+      color: #6b7280;
       opacity: 1;
-      min-height: 16px;
+      min-height: 18px;
     }
 
     .option-card.has-tradeoff:hover .option-tradeoff,
@@ -574,6 +583,13 @@
         display: flex;
       }
     }
+
+    .closing-line {
+      font-size: 12px;
+      color: #9ca3af;
+      text-align: center;
+      padding: 10px 0 0;
+    }
   </style>
 </head>
 <body>
@@ -626,6 +642,7 @@
     </section>
 
     <div class="messages" id="messages"></div>
+    <div class="closing-line">La claridad no elimina el conflicto. Lo ordena.</div>
   </div>
 </div>
 
@@ -887,7 +904,16 @@
         B: "Abrir diálogo",
         C: "Forzar definición"
       };
-      options.forEach((option) => {
+      const optionConsequences = {
+        A: "Limpia la tensión inmediata. Debilita el control con el tiempo.",
+        B: "Reordena el marco. Asume exposición controlada.",
+        C: "Restablece autoridad. Genera fricción inmediata."
+      };
+      const optionOrder = ["B", "A", "C"];
+      const displayOptions = optionOrder
+        .map(label => options.find(option => option.label === label))
+        .filter(Boolean);
+      displayOptions.forEach((option) => {
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
@@ -898,7 +924,7 @@
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
-        tradeoff.textContent = extractTradeoffLine(option.text);
+        tradeoff.textContent = optionConsequences[option.label] || "";
         if (tradeoff.textContent) {
           card.classList.add("has-tradeoff");
         }
@@ -1036,19 +1062,25 @@
 
     const insightLabel = document.createElement("div");
     insightLabel.className = "insight-label";
-    insightLabel.textContent = "INSIGHT";
+    insightLabel.textContent = "LO QUE REALMENTE ESTÁ OCURRIENDO";
 
     insightTextEl = document.createElement("div");
     insightTextEl.className = "insight-text";
-    insightTextEl.textContent = "…";
+    insightTextEl.textContent =
+      "Cuestionamientos públicos de un socio minoritario sobre decisiones laborales.";
+
+    const insightSubtext = document.createElement("div");
+    insightSubtext.className = "insight-subtext";
+    insightSubtext.textContent = "No es un desacuerdo puntual, es una erosión gradual de autoridad.";
 
     reasoningToggleEl = document.createElement("button");
     reasoningToggleEl.type = "button";
     reasoningToggleEl.className = "reasoning-toggle";
-    reasoningToggleEl.textContent = "Ver razonamiento";
+    reasoningToggleEl.textContent = "Ver cómo se llegó a esta conclusión";
 
     insightBlock.appendChild(insightLabel);
     insightBlock.appendChild(insightTextEl);
+    insightBlock.appendChild(insightSubtext);
     insightBlock.appendChild(reasoningToggleEl);
 
     analysisPanelEl = document.createElement("div");
