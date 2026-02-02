@@ -79,9 +79,9 @@
     .workspace {
       flex: 1;
       display: grid;
-      grid-template-columns: minmax(260px, 1.3fr) minmax(320px, 2.7fr);
+      grid-template-columns: minmax(260px, 1.1fr) minmax(320px, 2.9fr);
       grid-template-rows: 1fr;
-      gap: 36px;
+      gap: 28px;
       padding: 18px 36px 42px;
       min-height: 0;
     }
@@ -270,39 +270,65 @@
 
     .insight-block {
       text-align: center;
-      padding: 26px 18px;
+      padding: 32px 18px 22px;
       display: flex;
       flex-direction: column;
-      gap: 14px;
+      gap: 12px;
     }
 
     .insight-label {
-      font-size: 11px;
+      font-size: 10px;
       text-transform: uppercase;
-      letter-spacing: 0.32em;
+      letter-spacing: 0.22em;
       color: #9ca3af;
       font-weight: 600;
     }
 
     .insight-text {
       font-size: 32px;
-      font-weight: 600;
+      font-weight: 650;
       color: #111827;
-      line-height: 1.25;
-      max-width: 560px;
+      line-height: 1.35;
+      max-width: 520px;
       margin: 0 auto;
     }
 
     .reasoning-toggle {
-      background: none;
-      border: none;
-      color: #9ca3af;
+      background: transparent;
+      border: 1px solid #e5e7eb;
+      color: #64748b;
       font-size: 12px;
-      letter-spacing: 0.04em;
+      letter-spacing: 0.02em;
       text-transform: uppercase;
       cursor: pointer;
       align-self: center;
-      padding: 0;
+      padding: 10px 14px;
+      border-radius: 999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+    }
+
+    .reasoning-toggle:hover {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+      color: #475569;
+    }
+
+    .reasoning-toggle:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+    }
+
+    .reasoning-icon {
+      font-size: 14px;
+      line-height: 1;
+      transition: transform 0.2s ease;
+    }
+
+    .reasoning-toggle.is-open .reasoning-icon {
+      transform: rotate(180deg);
     }
 
     .analysis-panel {
@@ -312,15 +338,16 @@
       transition: max-height 0.35s ease, opacity 0.35s ease;
       display: flex;
       flex-direction: column;
-      gap: 16px;
+      gap: 18px;
       border-top: 1px solid #e5e7eb;
-      padding: 0 6px;
+      padding: 0 8px;
     }
 
     .analysis-panel.is-open {
       max-height: 1200px;
       opacity: 1;
-      padding-top: 18px;
+      padding-top: 22px;
+      padding-bottom: 12px;
     }
 
     .analysis-user-card {
@@ -341,13 +368,13 @@
     .analysis-user-body {
       font-size: 14px;
       line-height: 1.6;
-      color: #111827;
+      color: #334155;
       white-space: pre-wrap;
     }
 
     .analysis-section {
       border-top: 1px solid #e5e7eb;
-      padding-top: 12px;
+      padding-top: 14px;
     }
 
     .analysis-section-title {
@@ -355,12 +382,12 @@
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.12em;
-      color: #6b7280;
+      color: #64748b;
       margin-bottom: 8px;
     }
 
     .analysis-section-body {
-      color: #111827;
+      color: #334155;
       font-size: 14px;
       line-height: 1.7;
       white-space: pre-wrap;
@@ -377,7 +404,7 @@
       border-radius: 16px;
       padding: 16px 18px;
       background: #ffffff;
-      transition: border-color 0.2s ease, opacity 0.2s ease;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
       display: flex;
       flex-direction: column;
       gap: 10px;
@@ -386,6 +413,7 @@
 
     .option-card:hover {
       border-color: #d1d5db;
+      box-shadow: 0 4px 16px rgba(15, 23, 42, 0.06);
     }
 
     .option-title {
@@ -393,18 +421,33 @@
       font-size: 16px;
       color: #111827;
       letter-spacing: 0.01em;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .option-title-text {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .option-chevron {
+      font-size: 18px;
+      color: #9ca3af;
+      transition: transform 0.2s ease, color 0.2s ease;
+    }
+
+    .option-card.is-active .option-chevron {
+      transform: rotate(90deg);
+      color: #6b7280;
     }
 
     .option-tradeoff {
-      font-size: 12px;
-      color: #9ca3af;
-      opacity: 0;
-      transition: opacity 0.2s ease;
-      min-height: 16px;
-    }
-
-    .option-card.has-tradeoff:hover .option-tradeoff,
-    .option-card.has-tradeoff.is-active .option-tradeoff {
+      font-size: 13px;
+      color: #6b7280;
+      line-height: 1.5;
       opacity: 1;
     }
 
@@ -441,6 +484,12 @@
       padding: 0;
       cursor: pointer;
       min-width: 96px;
+    }
+
+    .option-card:focus-visible {
+      outline: none;
+      border-color: #94a3b8;
+      box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
     }
 
     .loader-panel {
@@ -588,10 +637,10 @@
         </div>
         <div class="input-row">
           <textarea id="input" rows="2" placeholder="Describe la situación (o pega el texto/email). Sé concreto." autocomplete="off"></textarea>
-          <button type="submit">Analizar</button>
+          <button type="submit">Obtener claridad</button>
           <div class="loader-panel loader-mobile" id="loaderMobile">
             <span class="loader-spinner" aria-hidden="true"></span>
-            <span>Analizando situación…</span>
+            <span>Pensando…</span>
           </div>
         </div>
       </form>
@@ -648,7 +697,7 @@
 
     const title = document.createElement("div");
     title.className = "analysis-user-title";
-    title.textContent = "Situación analizada";
+    title.textContent = "Lo que entendí";
 
     const body = document.createElement("div");
     body.className = "analysis-user-body";
@@ -665,9 +714,22 @@
     loader.className = `loader-panel ${type}`;
     loader.innerHTML = `
       <span class="loader-spinner" aria-hidden="true"></span>
-      <span>Analizando situación…</span>
+      <span>Pensando…</span>
     `;
     return loader;
+  }
+
+  function cleanInsightHeadline(text) {
+    if (!text) return "";
+    let cleaned = text
+      .replace(/^["“”'«»]+|["“”'«»]+$/g, "")
+      .replace(/\s{2,}/g, " ")
+      .trim();
+    cleaned = cleaned.replace(
+      /^(?:["“”'«»]\s*)?(Situaci[oó]n|Situacion|Contexto|Caso)\s*:\s*/i,
+      ""
+    );
+    return cleaned.replace(/\s{2,}/g, " ").trim();
   }
 
   function extractAnalysisSections(text) {
@@ -686,9 +748,18 @@
       const lecturaTitleRaw = lecturaTitleMatch ? lecturaTitleMatch[0] : "Lectura rápida";
       const pasandoTitleRaw = pasandoTitleMatch ? pasandoTitleMatch[0] : "Qué está pasando";
       const estrategiaTitleRaw = estrategiaTitleMatch ? estrategiaTitleMatch[0] : "Estrategia";
-      const lecturaTitle = lecturaTitleRaw.trim();
-      const pasandoTitle = pasandoTitleRaw.trim();
-      const estrategiaTitle = estrategiaTitleRaw.trim();
+      let lecturaTitle = lecturaTitleRaw.trim();
+      let pasandoTitle = pasandoTitleRaw.trim();
+      let estrategiaTitle = estrategiaTitleRaw.trim();
+      if (/Lectura r[áa]pida/i.test(lecturaTitle)) {
+        lecturaTitle = "En una frase";
+      }
+      if (/Qu[eé]\s+est[aá]\s+pasando/i.test(pasandoTitle)) {
+        pasandoTitle = "Qué hay detrás";
+      }
+      if (/Estrategia/i.test(estrategiaTitle)) {
+        estrategiaTitle = "Cómo moverte ahora";
+      }
       const lecturaBody = normalized
         .slice(lecturaIndex + lecturaTitleRaw.length, pasandoIndex)
         .trim()
@@ -823,13 +894,14 @@
     if (!optionsListEl) return;
     optionsListEl.querySelectorAll(".option-card").forEach(card => {
       card.classList.toggle("is-active", card.dataset.label === label);
+      card.setAttribute("aria-expanded", card.dataset.label === label ? "true" : "false");
     });
   }
 
   function addAssistantResponse(analysisText, options) {
     try {
       if (insightTextEl) {
-        insightTextEl.textContent = extractAppleInsight(analysisText || "");
+        insightTextEl.textContent = cleanInsightHeadline(extractAppleInsight(analysisText || ""));
       }
       if (analysisPanelEl) {
         analysisPanelEl.innerHTML = "";
@@ -863,16 +935,29 @@
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
+        card.setAttribute("tabindex", "0");
+        card.setAttribute("role", "button");
+        card.setAttribute("aria-expanded", "false");
 
         const title = document.createElement("div");
         title.className = "option-title";
-        title.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
+        const titleText = document.createElement("div");
+        titleText.className = "option-title-text";
+        titleText.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
+
+        const chevron = document.createElement("span");
+        chevron.className = "option-chevron";
+        chevron.setAttribute("aria-hidden", "true");
+        chevron.textContent = "›";
+
+        title.appendChild(titleText);
+        title.appendChild(chevron);
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
         tradeoff.textContent = extractTradeoffLine(option.text);
-        if (tradeoff.textContent) {
-          card.classList.add("has-tradeoff");
+        if (!tradeoff.textContent) {
+          tradeoff.style.display = "none";
         }
 
         const body = document.createElement("div");
@@ -908,6 +993,12 @@
         card.appendChild(body);
         card.addEventListener("click", () => {
           setActiveOption(activeOption === option.label ? null : option.label);
+        });
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            setActiveOption(activeOption === option.label ? null : option.label);
+          }
         });
         optionsListEl.appendChild(card);
       });
@@ -946,7 +1037,7 @@
   function setLoading(state) {
     isLoading = state;
     submitButton.disabled = state;
-    submitButton.textContent = state ? "Analizando…" : "Analizar";
+    submitButton.textContent = state ? "Pensando…" : "Obtener claridad";
     loaderMobile.classList.toggle("is-active", state);
     if (loaderDesktopEl) {
       loaderDesktopEl.classList.toggle("is-active", state);
@@ -1012,7 +1103,19 @@
     reasoningToggleEl = document.createElement("button");
     reasoningToggleEl.type = "button";
     reasoningToggleEl.className = "reasoning-toggle";
-    reasoningToggleEl.textContent = "Ver razonamiento";
+    reasoningToggleEl.setAttribute("aria-expanded", "false");
+
+    const reasoningText = document.createElement("span");
+    reasoningText.className = "reasoning-text";
+    reasoningText.textContent = "Ver razonamiento completo";
+
+    const reasoningIcon = document.createElement("span");
+    reasoningIcon.className = "reasoning-icon";
+    reasoningIcon.setAttribute("aria-hidden", "true");
+    reasoningIcon.textContent = "⌄";
+
+    reasoningToggleEl.appendChild(reasoningText);
+    reasoningToggleEl.appendChild(reasoningIcon);
 
     insightBlock.appendChild(insightLabel);
     insightBlock.appendChild(insightTextEl);
@@ -1033,7 +1136,11 @@
     messagesEl.appendChild(assistantShell);
 
     reasoningToggleEl.addEventListener("click", () => {
-      analysisPanelEl.classList.toggle("is-open");
+      const isOpen = analysisPanelEl.classList.toggle("is-open");
+      reasoningToggleEl.classList.toggle("is-open", isOpen);
+      reasoningToggleEl.setAttribute("aria-expanded", isOpen ? "true" : "false");
+      reasoningText.textContent = isOpen ? "Ocultar razonamiento" : "Ver razonamiento completo";
+      reasoningIcon.textContent = isOpen ? "⌃" : "⌄";
     });
 
     setLoading(true);
