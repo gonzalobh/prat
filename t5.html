@@ -433,11 +433,35 @@
       border-color: #d1d5db;
     }
 
+    .option-card.is-recommended {
+      border-color: #cbd5e1;
+      background: #f8fafc;
+    }
+
+    .option-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
     .option-title {
       font-weight: 600;
       font-size: 16px;
       color: #111827;
       letter-spacing: 0.01em;
+    }
+
+    .option-tag {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #cbd5e1;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
 
     .option-tradeoff {
@@ -510,12 +534,8 @@
       animation: spin 0.9s linear infinite;
     }
 
-    .loader-desktop {
-      display: none;
-    }
-
-    .loader-mobile {
-      display: none;
+    .loader-panel.is-active {
+      display: flex;
     }
 
     @keyframes spin {
@@ -569,18 +589,11 @@
         min-height: 180px;
       }
 
-      .loader-desktop {
-        display: none;
-      }
-
-      .loader-mobile.is-active {
-        display: flex;
-      }
     }
 
     @media (min-width: 1024px) {
-      .loader-desktop.is-active {
-        display: flex;
+      .loader-mobile {
+        display: none;
       }
     }
 
@@ -589,6 +602,12 @@
       color: #9ca3af;
       text-align: center;
       padding: 10px 0 0;
+    }
+
+    .response-shell.is-loading .insight-block,
+    .response-shell.is-loading .analysis-panel,
+    .response-shell.is-loading .options-list {
+      display: none;
     }
   </style>
 </head>
@@ -635,7 +654,7 @@
           <button type="submit">Analizar</button>
           <div class="loader-panel loader-mobile" id="loaderMobile">
             <span class="loader-spinner" aria-hidden="true"></span>
-            <span>Analizando situación…</span>
+            <span>Ordenando la situación…</span>
           </div>
         </div>
       </form>
@@ -673,6 +692,7 @@
   let analysisPanelEl = null;
   let optionsListEl = null;
   let loaderDesktopEl = null;
+  let currentResponseShell = null;
   let activeOption = null;
   let lastUserText = "";
 
@@ -709,7 +729,7 @@
     loader.className = `loader-panel ${type}`;
     loader.innerHTML = `
       <span class="loader-spinner" aria-hidden="true"></span>
-      <span>Analizando situación…</span>
+      <span>Ordenando la situación…</span>
     `;
     return loader;
   }
@@ -871,7 +891,7 @@
     });
   }
 
-  function addAssistantResponse(analysisText, options) {
+  function addAssistantResponse(analysisText, options, recommendation) {
     try {
       if (insightTextEl) {
         insightTextEl.textContent = extractAppleInsight(analysisText || "");
@@ -910,17 +930,37 @@
         C: "Restablece autoridad. Genera fricción inmediata."
       };
       const optionOrder = ["B", "A", "C"];
-      const displayOptions = optionOrder
+      const normalizedRecommendation = recommendation && ["A", "B", "C"].includes(recommendation)
+        ? recommendation
+        : null;
+      const resolvedOrder = normalizedRecommendation
+        ? [normalizedRecommendation, ...optionOrder.filter(label => label !== normalizedRecommendation)]
+        : optionOrder;
+      const displayOptions = resolvedOrder
         .map(label => options.find(option => option.label === label))
         .filter(Boolean);
       displayOptions.forEach((option) => {
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
+        if (normalizedRecommendation && option.label === normalizedRecommendation) {
+          card.classList.add("is-recommended");
+        }
+
+        const header = document.createElement("div");
+        header.className = "option-header";
 
         const title = document.createElement("div");
         title.className = "option-title";
         title.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
+        header.appendChild(title);
+
+        if (normalizedRecommendation && option.label === normalizedRecommendation) {
+          const tag = document.createElement("div");
+          tag.className = "option-tag";
+          tag.textContent = "Recomendada";
+          header.appendChild(tag);
+        }
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
@@ -957,7 +997,7 @@
 
         body.appendChild(text);
         body.appendChild(copyButton);
-        card.appendChild(title);
+        card.appendChild(header);
         card.appendChild(tradeoff);
         card.appendChild(body);
         card.addEventListener("click", () => {
@@ -974,8 +1014,11 @@
 
   function parseResponse(answer) {
     try {
-      if (!answer) return { analysis: "", options: [] };
+      if (!answer) return { analysis: "", options: [], recommendation: "" };
       const normalized = answer.replace(/\r\n/g, "\n");
+      const recommendationMatch = normalized.match(/RECOMENDACI[ÓO]N\s*:\s*([A-C])/i);
+      const recommendation = recommendationMatch ? recommendationMatch[1].toUpperCase() : "";
+      const cleaned = normalized.replace(/^\s*RECOMENDACI[ÓO]N\s*:\s*[A-C]\s*$/gim, "").trim();
       const optionRegex = (label) =>
         new RegExp(
           `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
@@ -983,17 +1026,17 @@
         );
       const options = ["A", "B", "C"]
         .map((label) => {
-          const match = normalized.match(optionRegex(label));
+          const match = cleaned.match(optionRegex(label));
           return match ? { label, text: match[1].trim() } : null;
         })
         .filter(Boolean);
-      const firstOptionIndex = normalized.search(/Opc[ií]ón\s*[A-C]/i);
+      const firstOptionIndex = cleaned.search(/Opc[ií]ón\s*[A-C]/i);
       const analysisContent =
-        firstOptionIndex !== -1 ? normalized.slice(0, firstOptionIndex).trim() : normalized.trim();
-      return { analysis: analysisContent, options };
+        firstOptionIndex !== -1 ? cleaned.slice(0, firstOptionIndex).trim() : cleaned.trim();
+      return { analysis: analysisContent, options, recommendation };
     } catch (error) {
       console.error(error);
-      return { analysis: answer || "", options: [] };
+      return { analysis: answer || "", options: [], recommendation: "" };
     }
   }
 
@@ -1004,6 +1047,9 @@
     loaderMobile.classList.toggle("is-active", state);
     if (loaderDesktopEl) {
       loaderDesktopEl.classList.toggle("is-active", state);
+    }
+    if (currentResponseShell) {
+      currentResponseShell.classList.toggle("is-loading", state);
     }
   }
 
@@ -1055,7 +1101,8 @@
     messages = [{ role: "user", content: payloadFinal }];
 
     const assistantShell = document.createElement("div");
-    assistantShell.className = "response-shell";
+    assistantShell.className = "response-shell is-loading";
+    currentResponseShell = assistantShell;
 
     const insightBlock = document.createElement("div");
     insightBlock.className = "insight-block";
@@ -1066,8 +1113,7 @@
 
     insightTextEl = document.createElement("div");
     insightTextEl.className = "insight-text";
-    insightTextEl.textContent =
-      "Cuestionamientos públicos de un socio minoritario sobre decisiones laborales.";
+    insightTextEl.textContent = "";
 
     const insightSubtext = document.createElement("div");
     insightSubtext.className = "insight-subtext";
@@ -1124,7 +1170,7 @@
       }
 
       const parsed = parseResponse(answerText || "");
-      addAssistantResponse(parsed.analysis, parsed.options);
+      addAssistantResponse(parsed.analysis, parsed.options, parsed.recommendation);
       messages.push({ role: "assistant", content: answerText });
     } catch (error) {
       console.error(error);
