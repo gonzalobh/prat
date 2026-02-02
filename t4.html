@@ -235,6 +235,24 @@
 
     .column-input {
       grid-row: 1;
+      max-height: 1200px;
+      overflow: hidden;
+      transition: max-height 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+        opacity 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+        padding 0.32s cubic-bezier(0.4, 0, 0.2, 1),
+        border-width 0.32s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .column-input.is-collapsed {
+      max-height: 0;
+      opacity: 0;
+      padding: 0;
+      border-width: 0;
+      pointer-events: none;
+    }
+
+    .column-input.is-restoring {
+      transition: none;
     }
 
     .messages {
@@ -659,6 +677,7 @@
   const menuBtn = document.getElementById("menuBtn");
   const menu = document.getElementById("menu");
   const resetBtn = document.getElementById("resetBtn");
+  const inputColumn = document.querySelector(".column-input");
   const contextSelector = document.getElementById("contextSelector");
   const contextButtons = contextSelector.querySelectorAll(".context-button");
   const submitButton = form.querySelector("button[type='submit']");
@@ -1067,6 +1086,7 @@
   });
 
   async function sendMessage(text) {
+    inputColumn.classList.add("is-collapsed");
     lastUserText = text;
     const profileParts = [];
     if (genderSelect.value) {
@@ -1208,6 +1228,10 @@
     genderSelect.value = "";
     ageSelect.value = "";
     profileRow.classList.add("is-collapsed");
+    inputColumn.classList.add("is-restoring");
+    inputColumn.classList.remove("is-collapsed");
+    inputColumn.offsetHeight;
+    inputColumn.classList.remove("is-restoring");
     menu.classList.remove("open");
   };
 
