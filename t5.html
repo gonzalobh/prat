@@ -329,25 +329,28 @@
     }
 
     .reasoning-toggle {
-      background: transparent;
-      border: none;
-      color: #9ca3af;
-      font-size: 12px;
-      letter-spacing: 0;
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      color: #374151;
+      font-size: 13px;
+      letter-spacing: 0.01em;
       text-transform: none;
       cursor: pointer;
       align-self: center;
-      padding: 4px 0;
-      border-radius: 0;
+      padding: 10px 16px;
+      border-radius: 12px;
       box-shadow: none;
-      transition: color 0.2s ease;
+      transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
 
     .reasoning-toggle:hover {
-      background: transparent;
-      border-color: transparent;
+      background: #f8fafc;
+      border-color: #d1d5db;
       transform: none;
-      color: #6b7280;
+      color: #1f2937;
     }
 
     .analysis-panel {
@@ -415,6 +418,14 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
+    }
+
+    .options-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 600;
+      color: #6b7280;
     }
 
     .dashboard-card {
@@ -526,7 +537,6 @@
       display: flex;
       flex-direction: column;
       gap: 10px;
-      cursor: pointer;
       position: relative;
     }
 
@@ -557,6 +567,26 @@
       gap: 12px;
     }
 
+    .option-title-wrap {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .option-index {
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 600;
+      color: #111827;
+    }
+
     .option-title {
       font-weight: 600;
       font-size: 16px;
@@ -577,10 +607,21 @@
     }
 
     .option-tradeoff {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
       font-size: 13px;
       color: #6b7280;
       opacity: 1;
       min-height: 18px;
+    }
+
+    .option-tradeoff-base {
+      color: #9ca3af;
+    }
+
+    .option-tradeoff-dynamic {
+      color: #6b7280;
     }
 
     .tradeoff-grid {
@@ -615,24 +656,13 @@
       color: #111827;
     }
 
-    .option-card.has-tradeoff:hover .option-tradeoff,
-    .option-card.has-tradeoff.is-active .option-tradeoff {
-      opacity: 1;
-    }
-
     .option-body {
-      max-height: 0;
-      opacity: 0;
-      overflow: hidden;
-      transition: max-height 0.3s ease, opacity 0.3s ease;
+      max-height: none;
+      opacity: 1;
+      overflow: visible;
       display: flex;
       flex-direction: column;
       gap: 12px;
-    }
-
-    .option-card.is-active .option-body {
-      max-height: 400px;
-      opacity: 1;
     }
 
     .option-text {
@@ -642,17 +672,49 @@
       white-space: pre-wrap;
     }
 
+    .copy-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
     .copy-button {
       align-self: flex-start;
-      border: none;
-      background: none;
+      border: 1px solid transparent;
+      background: transparent;
       color: #6b7280;
-      font-size: 12px;
-      letter-spacing: 0.04em;
-      text-transform: uppercase;
       padding: 0;
       cursor: pointer;
-      min-width: 96px;
+      width: 40px;
+      height: 40px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 12px;
+      transition: border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .copy-button:hover,
+    .copy-button:focus-visible {
+      border-color: #e5e7eb;
+      background: #f8fafc;
+      outline: none;
+    }
+
+    .copy-button img {
+      width: 18px;
+      height: 18px;
+      opacity: 0.7;
+    }
+
+    .copy-feedback {
+      font-size: 12px;
+      color: #6b7280;
+      opacity: 0;
+    }
+
+    .copy-feedback.is-visible {
+      animation: fadeCopy 0.9s ease;
     }
 
     .loader-panel {
@@ -753,6 +815,7 @@
     .response-shell.is-loading .dashboard-card,
     .response-shell.is-loading .summary-blocks,
     .response-shell.is-loading .analysis-panel,
+    .response-shell.is-loading .options-title,
     .response-shell.is-loading .options-list {
       display: none;
     }
@@ -844,7 +907,6 @@
   let currentResponseShell = null;
   let summaryBlocksEl = null;
   let dashboardEl = null;
-  let activeOption = null;
   let lastUserText = "";
 
   const WELCOME = "";
@@ -1014,6 +1076,12 @@
     return "Alto";
   }
 
+  function levelTextFor(labelGender, level) {
+    if (level <= 2) return labelGender === "f" ? "Baja" : "Bajo";
+    if (level <= 3) return labelGender === "f" ? "Media" : "Medio";
+    return labelGender === "f" ? "Alta" : "Alto";
+  }
+
   function clampMetric(value) {
     return Math.min(5, Math.max(1, value));
   }
@@ -1098,10 +1166,10 @@
     dashboard.appendChild(title);
 
     const rows = [
-      { key: "risk", label: "Riesgo" },
-      { key: "urgency", label: "Urgencia" },
-      { key: "ambiguity", label: "Ambigüedad" },
-      { key: "inactionCost", label: "Costo de no actuar" }
+      { key: "risk", label: "Riesgo", gender: "m" },
+      { key: "urgency", label: "Urgencia", gender: "f" },
+      { key: "ambiguity", label: "Ambigüedad", gender: "f" },
+      { key: "inactionCost", label: "Costo de no actuar", gender: "m" }
     ];
 
     rows.forEach((row) => {
@@ -1129,7 +1197,7 @@
 
       const levelEl = document.createElement("div");
       levelEl.className = "metric-level";
-      levelEl.textContent = levelText(level);
+      levelEl.textContent = `${row.label} — ${levelTextFor(row.gender, level)}`;
 
       indicator.appendChild(dots);
       indicator.appendChild(levelEl);
@@ -1256,12 +1324,14 @@
     return result;
   }
 
-  function setActiveOption(label) {
-    activeOption = label;
-    if (!optionsListEl) return;
-    optionsListEl.querySelectorAll(".option-card").forEach(card => {
-      card.classList.toggle("is-active", card.dataset.label === label);
-    });
+  function buildOptionDynamicLine(optionText) {
+    if (!optionText) return "";
+    let cleaned = optionText.replace(/\r\n/g, "\n").trim();
+    cleaned = cleaned.replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/i, "").trim();
+    const candidate = extractFirstSentence(cleaned) || trimToSentences(cleaned, 1);
+    if (!candidate) return "";
+    const trimmed = candidate.length > 110 ? `${candidate.slice(0, 107).trim()}…` : candidate;
+    return trimmed;
   }
 
   function addAssistantResponse(analysisText, options, recommendation) {
@@ -1353,9 +1423,9 @@
         C: "Forzar definición"
       };
       const optionConsequences = {
-        A: "Limpia la tensión inmediata. Debilita el control con el tiempo.",
-        B: "Reordena el marco. Asume exposición controlada.",
-        C: "Restablece autoridad. Genera fricción inmediata."
+        A: "Limpia la tensión inmediata.",
+        B: "Reordena el marco.",
+        C: "Restablece autoridad."
       };
       const optionOrder = ["B", "A", "C"];
       const normalizedRecommendation = recommendation && ["A", "B", "C"].includes(recommendation)
@@ -1367,7 +1437,8 @@
       const displayOptions = resolvedOrder
         .map(label => options.find(option => option.label === label))
         .filter(Boolean);
-      displayOptions.forEach((option) => {
+      displayOptions.forEach((option, index) => {
+        const displayIndex = index + 1;
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
@@ -1378,12 +1449,21 @@
         const header = document.createElement("div");
         header.className = "option-header";
 
+        const titleWrap = document.createElement("div");
+        titleWrap.className = "option-title-wrap";
+
+        const indexBadge = document.createElement("div");
+        indexBadge.className = "option-index";
+        indexBadge.textContent = displayIndex;
+
         const title = document.createElement("div");
         title.className = "option-title";
-        title.textContent = `${option.label} — ${optionTitles[option.label] || "Opción"}`;
-        header.appendChild(title);
+        title.textContent = `Opción ${displayIndex} — ${optionTitles[option.label] || "Opción"}`;
+        titleWrap.appendChild(indexBadge);
+        titleWrap.appendChild(title);
+        header.appendChild(titleWrap);
 
-        if (normalizedRecommendation && option.label === normalizedRecommendation) {
+        if (normalizedRecommendation && option.label === normalizedRecommendation && displayIndex === 1) {
           const tag = document.createElement("div");
           tag.className = "option-tag";
           tag.textContent = "Recomendada";
@@ -1392,9 +1472,17 @@
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
-        tradeoff.textContent = optionConsequences[option.label] || "";
-        if (tradeoff.textContent) {
-          card.classList.add("has-tradeoff");
+        const tradeoffBase = document.createElement("div");
+        tradeoffBase.className = "option-tradeoff-base";
+        tradeoffBase.textContent = optionConsequences[option.label] || "";
+        const tradeoffDynamic = document.createElement("div");
+        tradeoffDynamic.className = "option-tradeoff-dynamic";
+        tradeoffDynamic.textContent = buildOptionDynamicLine(option.text);
+        if (tradeoffBase.textContent) {
+          tradeoff.appendChild(tradeoffBase);
+        }
+        if (tradeoffDynamic.textContent) {
+          tradeoff.appendChild(tradeoffDynamic);
         }
 
         const tradeoffGrid = document.createElement("div");
@@ -1444,34 +1532,45 @@
         const copyButton = document.createElement("button");
         copyButton.type = "button";
         copyButton.className = "copy-button";
-        copyButton.setAttribute("aria-label", "Copiar texto");
-        copyButton.textContent = "Copiar texto";
+        copyButton.setAttribute("aria-label", "Copiar");
+        copyButton.setAttribute("title", "Copiar");
+        const copyIcon = document.createElement("img");
+        copyIcon.src = "/iconos/copy.svg";
+        copyIcon.alt = "";
+        copyIcon.setAttribute("aria-hidden", "true");
+        copyButton.appendChild(copyIcon);
+
+        const copyFeedback = document.createElement("span");
+        copyFeedback.className = "copy-feedback";
+        copyFeedback.textContent = "Copiado ✓";
 
         copyButton.addEventListener("click", async (event) => {
           event.stopPropagation();
           try {
             await navigator.clipboard.writeText(option.text);
-            copyButton.textContent = "Copiado ✓";
+            copyFeedback.classList.remove("is-visible");
+            void copyFeedback.offsetWidth;
+            copyFeedback.classList.add("is-visible");
             setTimeout(() => {
-              copyButton.textContent = "Copiar texto";
-            }, 1200);
+              copyFeedback.classList.remove("is-visible");
+            }, 900);
           } catch (error) {
             console.error(error);
           }
         });
 
         body.appendChild(text);
-        body.appendChild(copyButton);
+        const copyRow = document.createElement("div");
+        copyRow.className = "copy-row";
+        copyRow.appendChild(copyButton);
+        copyRow.appendChild(copyFeedback);
+        body.appendChild(copyRow);
         card.appendChild(header);
         card.appendChild(tradeoff);
         card.appendChild(tradeoffGrid);
         card.appendChild(body);
-        card.addEventListener("click", () => {
-          setActiveOption(activeOption === option.label ? null : option.label);
-        });
         optionsListEl.appendChild(card);
       });
-      setActiveOption(null);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     } catch (error) {
       console.error(error);
@@ -1596,8 +1695,6 @@
     insightBlock.appendChild(insightLabel);
     insightBlock.appendChild(insightTextEl);
     insightBlock.appendChild(insightSubtextEl);
-    insightBlock.appendChild(reasoningToggleEl);
-
     analysisPanelEl = document.createElement("div");
     analysisPanelEl.className = "analysis-panel";
 
@@ -1608,6 +1705,10 @@
     summaryBlocksEl = document.createElement("div");
     summaryBlocksEl.className = "summary-blocks";
 
+    const optionsTitleEl = document.createElement("div");
+    optionsTitleEl.className = "options-title";
+    optionsTitleEl.textContent = "Opciones:";
+
     optionsListEl = document.createElement("div");
     optionsListEl.className = "options-list";
 
@@ -1615,7 +1716,9 @@
     assistantShell.appendChild(loaderDesktopEl);
     assistantShell.appendChild(dashboardEl);
     assistantShell.appendChild(summaryBlocksEl);
+    assistantShell.appendChild(optionsTitleEl);
     assistantShell.appendChild(optionsListEl);
+    assistantShell.appendChild(reasoningToggleEl);
     assistantShell.appendChild(analysisPanelEl);
     messagesEl.appendChild(assistantShell);
     requestAnimationFrame(() => {
@@ -1624,6 +1727,10 @@
 
     reasoningToggleEl.addEventListener("click", () => {
       analysisPanelEl.classList.toggle("is-open");
+      const isOpen = analysisPanelEl.classList.contains("is-open");
+      reasoningToggleEl.textContent = isOpen
+        ? "Ocultar análisis"
+        : "Ver cómo se llegó a esta conclusión";
     });
 
     setLoading(true);
