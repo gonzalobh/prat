@@ -618,10 +618,16 @@
         display: flex;
       }
 
+      .workspace.is-reflection-mode {
+        display: flex;
+        justify-content: center;
+      }
+
       .workspace.is-reflection-mode .messages {
-        grid-column: 1 / -1;
-        margin-left: auto;
-        margin-right: auto;
+        width: 100%;
+        max-width: 840px;
+        margin: 0 auto;
+        padding-right: 0;
       }
 
       .workspace.is-reflection-mode .response-shell {
