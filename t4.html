@@ -126,7 +126,7 @@
       outline: none;
       resize: none;
       line-height: 1.7;
-      min-height: 220px;
+      min-height: 120px;
       background: #f9fafb;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
     }
@@ -556,7 +556,7 @@
       }
 
       .workspace:not(.is-reflection-mode) textarea {
-        min-height: 260px;
+        min-height: 140px;
         padding: 20px 20px;
       }
 
@@ -565,8 +565,8 @@
       }
 
       .workspace.is-reflection-mode {
-        display: flex;
-        justify-content: center;
+        display: grid;
+        grid-template-columns: 1fr;
       }
 
       .workspace.is-reflection-mode .messages {
@@ -574,6 +574,7 @@
         max-width: 840px;
         margin: 0 auto;
         padding-right: 0;
+        align-items: stretch;
       }
 
       .workspace.is-reflection-mode .response-shell {
@@ -1018,8 +1019,18 @@
   }
 
   async function sendMessage(text) {
-    inputColumn.classList.add("is-collapsed");
+    // 1. Congelar layout (sin animación)
+    inputColumn.classList.add("is-restoring");
+
+    // 2. Activar modo reflexión sin transición visual
     workspace.classList.add("is-reflection-mode");
+
+    // 3. Forzar reflow
+    inputColumn.offsetHeight;
+
+    // 4. Colapsar suavemente (solo fade + vertical)
+    inputColumn.classList.remove("is-restoring");
+    inputColumn.classList.add("is-collapsed");
     lastUserText = text;
     const payloadLines = [`[Contexto: ${currentContext}]`];
     payloadLines.push(text);
