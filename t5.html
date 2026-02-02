@@ -417,6 +417,106 @@
       gap: 14px;
     }
 
+    .dashboard-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 18px;
+      padding: 18px 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: #ffffff;
+    }
+
+    .dashboard-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-weight: 600;
+      color: #6b7280;
+    }
+
+    .metric-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .metric-label {
+      min-width: 120px;
+      font-weight: 600;
+      color: #111827;
+    }
+
+    .metric-indicator {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .dots {
+      display: flex;
+      gap: 4px;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 999px;
+      background: #e5e7eb;
+    }
+
+    .dot.is-active {
+      background: #111827;
+      opacity: 0.8;
+    }
+
+    .metric-level {
+      font-size: 12px;
+      color: #6b7280;
+      min-width: 56px;
+      text-align: right;
+    }
+
+    .summary-blocks {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .summary-block {
+      background: #ffffff;
+      border: 1px solid #e5e7eb;
+      border-radius: 16px;
+      padding: 16px 18px;
+    }
+
+    .summary-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.14em;
+      font-weight: 600;
+      color: #6b7280;
+      margin-bottom: 8px;
+    }
+
+    .summary-body {
+      font-size: 14px;
+      line-height: 1.7;
+      color: #111827;
+      white-space: pre-wrap;
+    }
+
+    .summary-body ul {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 6px;
+    }
+
     .option-card {
       border: 1px solid #e5e7eb;
       border-radius: 16px;
@@ -427,6 +527,7 @@
       flex-direction: column;
       gap: 10px;
       cursor: pointer;
+      position: relative;
     }
 
     .option-card:hover {
@@ -436,6 +537,17 @@
     .option-card.is-recommended {
       border-color: #cbd5e1;
       background: #f8fafc;
+    }
+
+    .option-card.is-recommended::before {
+      content: "";
+      position: absolute;
+      left: 0;
+      top: 14px;
+      bottom: 14px;
+      width: 3px;
+      border-radius: 999px;
+      background: rgba(17, 24, 39, 0.4);
     }
 
     .option-header {
@@ -469,6 +581,38 @@
       color: #6b7280;
       opacity: 1;
       min-height: 18px;
+    }
+
+    .tradeoff-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 10px;
+    }
+
+    .tradeoff-col {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      font-size: 13px;
+      color: #111827;
+    }
+
+    .tradeoff-title {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 11px;
+      color: #6b7280;
+    }
+
+    .tradeoff-list {
+      margin: 0;
+      padding-left: 18px;
+      display: grid;
+      gap: 4px;
+      color: #111827;
     }
 
     .option-card.has-tradeoff:hover .option-tradeoff,
@@ -601,10 +745,13 @@
       font-size: 12px;
       color: #9ca3af;
       text-align: center;
-      padding: 10px 0 0;
+      padding: 4px 0 0;
+      opacity: 0.7;
     }
 
     .response-shell.is-loading .insight-block,
+    .response-shell.is-loading .dashboard-card,
+    .response-shell.is-loading .summary-blocks,
     .response-shell.is-loading .analysis-panel,
     .response-shell.is-loading .options-list {
       display: none;
@@ -683,16 +830,20 @@
   const genderSelect = document.getElementById("genderSelect");
   const ageSelect = document.getElementById("ageSelect");
   const loaderMobile = document.getElementById("loaderMobile");
+  const closingLine = document.querySelector(".closing-line");
 
   let messages = [];
   let currentContext = "General";
   let isLoading = false;
   let insightTextEl = null;
+  let insightSubtextEl = null;
   let reasoningToggleEl = null;
   let analysisPanelEl = null;
   let optionsListEl = null;
   let loaderDesktopEl = null;
   let currentResponseShell = null;
+  let summaryBlocksEl = null;
+  let dashboardEl = null;
   let activeOption = null;
   let lastUserText = "";
 
@@ -822,6 +973,26 @@
     return (firstLine || cleaned).trim();
   }
 
+  function trimToSentences(text, count = 2) {
+    if (!text) return "";
+    const sentences = text.split(/(?<=[.!?])\s+/).filter(Boolean);
+    return sentences.slice(0, count).join(" ").trim();
+  }
+
+  function extractBulletCandidates(text) {
+    if (!text) return [];
+    const lines = text
+      .split("\n")
+      .map(line => line.replace(/^[-*•]\s*/, "").trim())
+      .filter(Boolean);
+    if (lines.length >= 3) return lines;
+    const sentences = text
+      .split(/(?<=[.!?])\s+/)
+      .map(sentence => sentence.trim())
+      .filter(Boolean);
+    return sentences.length ? sentences : lines;
+  }
+
   function findSectionText(text, startRegex, stopRegexes) {
     const startMatch = text.match(startRegex);
     if (!startMatch) return "";
@@ -835,6 +1006,168 @@
       }
     });
     return text.slice(start, end).trim();
+  }
+
+  function levelText(level) {
+    if (level <= 2) return "Bajo";
+    if (level <= 3) return "Medio";
+    return "Alto";
+  }
+
+  function clampMetric(value) {
+    return Math.min(5, Math.max(1, value));
+  }
+
+  function parseLevelKeyword(text) {
+    if (!text) return null;
+    const lower = text.toLowerCase();
+    if (lower.includes("muy alto") || lower.includes("crítico")) return 5;
+    if (lower.includes("alto")) return 4;
+    if (lower.includes("medio") || lower.includes("media")) return 3;
+    if (lower.includes("bajo") || lower.includes("baja")) return 2;
+    return null;
+  }
+
+  function deriveMetricsFromAnalysis(analysisText) {
+    const defaults = {
+      risk: 3,
+      urgency: 3,
+      ambiguity: 3,
+      inactionCost: 3
+    };
+    if (!analysisText) return defaults;
+    const normalized = analysisText.replace(/\r\n/g, "\n");
+    const lectura = findSectionText(
+      normalized,
+      /Lectura r[áa]pida/i,
+      [/Qu[eé]\s+est[aá]\s+pasando/i, /Estrategia/i, /Opc[ií]ón\s*[A-C]/i]
+    );
+    const combined = `${lectura}\n${normalized}`.toLowerCase();
+    const metrics = { ...defaults };
+
+    if (lectura) {
+      const lines = lectura.split("\n").map(line => line.trim()).filter(Boolean);
+      lines.forEach(line => {
+        if (/riesgo/i.test(line)) {
+          const level = parseLevelKeyword(line);
+          if (level) metrics.risk = level;
+        }
+        if (/ambig[uü]edad|incertidumbre/i.test(line)) {
+          const level = parseLevelKeyword(line);
+          if (level) metrics.ambiguity = level;
+        }
+        if (/urgencia|urgente/i.test(line)) {
+          const level = parseLevelKeyword(line);
+          if (level) metrics.urgency = level;
+        }
+        if (/costo|coste|p[eé]rdida|consecuencia/i.test(line)) {
+          const level = parseLevelKeyword(line);
+          if (level) metrics.inactionCost = level;
+        }
+      });
+    }
+
+    if (metrics.urgency === defaults.urgency && /urgente|inmediato|ahora|ya\b/i.test(combined)) {
+      metrics.urgency = 4;
+    }
+    if (metrics.ambiguity === defaults.ambiguity && /incertidumbre|ambigu|no est[aá] claro|difuso/i.test(combined)) {
+      metrics.ambiguity = 4;
+    }
+    if (metrics.risk === defaults.risk && /riesgo|p[eé]rdida|expuesto|grave/i.test(combined)) {
+      metrics.risk = 4;
+    }
+    if (metrics.inactionCost === defaults.inactionCost && /coste|costo|p[eé]rdida|consecuencia/i.test(combined)) {
+      metrics.inactionCost = 4;
+    }
+
+    return {
+      risk: clampMetric(metrics.risk),
+      urgency: clampMetric(metrics.urgency),
+      ambiguity: clampMetric(metrics.ambiguity),
+      inactionCost: clampMetric(metrics.inactionCost)
+    };
+  }
+
+  function buildDecisionDashboard(metrics) {
+    const dashboard = document.createElement("div");
+    dashboard.className = "dashboard-card";
+
+    const title = document.createElement("div");
+    title.className = "dashboard-title";
+    title.textContent = "Decision Dashboard";
+    dashboard.appendChild(title);
+
+    const rows = [
+      { key: "risk", label: "Riesgo" },
+      { key: "urgency", label: "Urgencia" },
+      { key: "ambiguity", label: "Ambigüedad" },
+      { key: "inactionCost", label: "Costo de no actuar" }
+    ];
+
+    rows.forEach((row) => {
+      const level = metrics[row.key];
+      const rowEl = document.createElement("div");
+      rowEl.className = "metric-row";
+
+      const label = document.createElement("div");
+      label.className = "metric-label";
+      label.textContent = row.label;
+
+      const indicator = document.createElement("div");
+      indicator.className = "metric-indicator";
+
+      const dots = document.createElement("div");
+      dots.className = "dots";
+      for (let i = 1; i <= 5; i += 1) {
+        const dot = document.createElement("span");
+        dot.className = "dot";
+        if (i <= level) {
+          dot.classList.add("is-active");
+        }
+        dots.appendChild(dot);
+      }
+
+      const levelEl = document.createElement("div");
+      levelEl.className = "metric-level";
+      levelEl.textContent = levelText(level);
+
+      indicator.appendChild(dots);
+      indicator.appendChild(levelEl);
+
+      rowEl.appendChild(label);
+      rowEl.appendChild(indicator);
+      dashboard.appendChild(rowEl);
+    });
+
+    return dashboard;
+  }
+
+  function extractSubInsight(analysisText, context) {
+    const fallbacks = {
+      "Negociación": "El riesgo es el precedente, no el número.",
+      "Trabajo / Política interna": "La ambigüedad está debilitando el control.",
+      "Cliente / Ventas": "El marco acordado está siendo probado.",
+      "Carrera / Oferta laboral": "Decidir tarde también es una decisión.",
+      "General": "Lo crítico es el marco, no el detalle."
+    };
+    if (analysisText) {
+      const normalized = analysisText.replace(/\r\n/g, "\n");
+      const pasando = findSectionText(
+        normalized,
+        /Qu[eé]\s+est[aá]\s+pasando/i,
+        [/Estrategia/i, /Opc[ií]ón\s*[A-C]/i]
+      );
+      const lectura = findSectionText(
+        normalized,
+        /Lectura r[áa]pida/i,
+        [/Qu[eé]\s+est[aá]\s+pasando/i, /Estrategia/i]
+      );
+      const candidate = extractFirstSentence(pasando || lectura);
+      if (candidate) {
+        return candidate.length > 110 ? `${candidate.slice(0, 107).trim()}…` : candidate;
+      }
+    }
+    return fallbacks[context] || fallbacks.General;
   }
 
   function extractAppleInsight(rawAnalysisText) {
@@ -883,6 +1216,46 @@
     return "";
   }
 
+  function deriveGainsLosses(optionText, label) {
+    const fallback = {
+      A: {
+        gains: ["Bajas tensión hoy", "Ganas tiempo"],
+        losses: ["Pierdes control"]
+      },
+      B: {
+        gains: ["Recuperas marco", "Alineas expectativas"],
+        losses: ["Aceptas fricción"]
+      },
+      C: {
+        gains: ["Cortas ambigüedad", "Fijas límites"],
+        losses: ["Escalas conflicto"]
+      }
+    };
+    if (!optionText) return fallback[label] || fallback.A;
+    const sentences = optionText
+      .split(/(?<=[.!?])\s+/)
+      .map(sentence => sentence.trim())
+      .filter(Boolean);
+    const gains = sentences.filter(sentence =>
+      /permite|logras|ayuda|mantiene|protege|abre|recupera|alineas|gana/i.test(sentence)
+    );
+    const losses = sentences.filter(sentence =>
+      /pero|riesgo|puede|sin embargo|costo|coste|sacrific|expon/i.test(sentence)
+    );
+    const result = {
+      gains: gains.slice(0, 2),
+      losses: losses.slice(0, 1)
+    };
+    const fallbackData = fallback[label] || fallback.A;
+    while (result.gains.length < 2) {
+      result.gains.push(fallbackData.gains[result.gains.length]);
+    }
+    if (result.losses.length < 1) {
+      result.losses.push(fallbackData.losses[0]);
+    }
+    return result;
+  }
+
   function setActiveOption(label) {
     activeOption = label;
     if (!optionsListEl) return;
@@ -895,6 +1268,61 @@
     try {
       if (insightTextEl) {
         insightTextEl.textContent = extractAppleInsight(analysisText || "");
+      }
+      if (insightSubtextEl) {
+        insightSubtextEl.textContent = extractSubInsight(analysisText || "", currentContext);
+      }
+      if (dashboardEl) {
+        const metrics = deriveMetricsFromAnalysis(analysisText || "");
+        const nextDashboard = buildDecisionDashboard(metrics);
+        dashboardEl.replaceWith(nextDashboard);
+        dashboardEl = nextDashboard;
+      }
+      if (summaryBlocksEl) {
+        summaryBlocksEl.innerHTML = "";
+        if (analysisText) {
+          const sections = extractAnalysisSections(analysisText);
+          if (sections) {
+            const pasando = sections.find(section => /qu[eé]\s+est[aá]\s+pasando/i.test(section.title));
+            const estrategia = sections.find(section => /estrategia/i.test(section.title));
+            if (pasando && pasando.body) {
+              const block = document.createElement("div");
+              block.className = "summary-block";
+              const title = document.createElement("div");
+              title.className = "summary-title";
+              title.textContent = "Qué está pasando";
+              const body = document.createElement("div");
+              body.className = "summary-body";
+              body.textContent = trimToSentences(pasando.body, 2) || pasando.body;
+              block.appendChild(title);
+              block.appendChild(body);
+              summaryBlocksEl.appendChild(block);
+            }
+            if (estrategia && estrategia.body) {
+              const block = document.createElement("div");
+              block.className = "summary-block";
+              const title = document.createElement("div");
+              title.className = "summary-title";
+              title.textContent = "Marco recomendado";
+              const body = document.createElement("div");
+              body.className = "summary-body";
+              const list = document.createElement("ul");
+              extractBulletCandidates(estrategia.body).slice(0, 3).forEach((item) => {
+                const li = document.createElement("li");
+                li.textContent = item;
+                list.appendChild(li);
+              });
+              if (list.children.length) {
+                body.appendChild(list);
+              } else {
+                body.textContent = estrategia.body;
+              }
+              block.appendChild(title);
+              block.appendChild(body);
+              summaryBlocksEl.appendChild(block);
+            }
+          }
+        }
       }
       if (analysisPanelEl) {
         analysisPanelEl.innerHTML = "";
@@ -969,6 +1397,43 @@
           card.classList.add("has-tradeoff");
         }
 
+        const tradeoffGrid = document.createElement("div");
+        tradeoffGrid.className = "tradeoff-grid";
+        const derivedTradeoff = deriveGainsLosses(option.text, option.label);
+
+        const gainsCol = document.createElement("div");
+        gainsCol.className = "tradeoff-col";
+        const gainsTitle = document.createElement("div");
+        gainsTitle.className = "tradeoff-title";
+        gainsTitle.textContent = "Ganas";
+        const gainsList = document.createElement("ul");
+        gainsList.className = "tradeoff-list";
+        derivedTradeoff.gains.slice(0, 2).forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          gainsList.appendChild(li);
+        });
+        gainsCol.appendChild(gainsTitle);
+        gainsCol.appendChild(gainsList);
+
+        const lossesCol = document.createElement("div");
+        lossesCol.className = "tradeoff-col";
+        const lossesTitle = document.createElement("div");
+        lossesTitle.className = "tradeoff-title";
+        lossesTitle.textContent = "Pierdes";
+        const lossesList = document.createElement("ul");
+        lossesList.className = "tradeoff-list";
+        derivedTradeoff.losses.slice(0, 1).forEach(item => {
+          const li = document.createElement("li");
+          li.textContent = item;
+          lossesList.appendChild(li);
+        });
+        lossesCol.appendChild(lossesTitle);
+        lossesCol.appendChild(lossesList);
+
+        tradeoffGrid.appendChild(gainsCol);
+        tradeoffGrid.appendChild(lossesCol);
+
         const body = document.createElement("div");
         body.className = "option-body";
 
@@ -999,6 +1464,7 @@
         body.appendChild(copyButton);
         card.appendChild(header);
         card.appendChild(tradeoff);
+        card.appendChild(tradeoffGrid);
         card.appendChild(body);
         card.addEventListener("click", () => {
           setActiveOption(activeOption === option.label ? null : option.label);
@@ -1103,6 +1569,9 @@
     const assistantShell = document.createElement("div");
     assistantShell.className = "response-shell is-loading";
     currentResponseShell = assistantShell;
+    if (closingLine) {
+      closingLine.style.display = "none";
+    }
 
     const insightBlock = document.createElement("div");
     insightBlock.className = "insight-block";
@@ -1115,9 +1584,9 @@
     insightTextEl.className = "insight-text";
     insightTextEl.textContent = "";
 
-    const insightSubtext = document.createElement("div");
-    insightSubtext.className = "insight-subtext";
-    insightSubtext.textContent = "No es un desacuerdo puntual, es una erosión gradual de autoridad.";
+    insightSubtextEl = document.createElement("div");
+    insightSubtextEl.className = "insight-subtext";
+    insightSubtextEl.textContent = "";
 
     reasoningToggleEl = document.createElement("button");
     reasoningToggleEl.type = "button";
@@ -1126,7 +1595,7 @@
 
     insightBlock.appendChild(insightLabel);
     insightBlock.appendChild(insightTextEl);
-    insightBlock.appendChild(insightSubtext);
+    insightBlock.appendChild(insightSubtextEl);
     insightBlock.appendChild(reasoningToggleEl);
 
     analysisPanelEl = document.createElement("div");
@@ -1134,13 +1603,20 @@
 
     loaderDesktopEl = buildLoaderPanel("loader-desktop");
 
+    dashboardEl = buildDecisionDashboard(deriveMetricsFromAnalysis(""));
+
+    summaryBlocksEl = document.createElement("div");
+    summaryBlocksEl.className = "summary-blocks";
+
     optionsListEl = document.createElement("div");
     optionsListEl.className = "options-list";
 
     assistantShell.appendChild(insightBlock);
     assistantShell.appendChild(loaderDesktopEl);
-    assistantShell.appendChild(analysisPanelEl);
+    assistantShell.appendChild(dashboardEl);
+    assistantShell.appendChild(summaryBlocksEl);
     assistantShell.appendChild(optionsListEl);
+    assistantShell.appendChild(analysisPanelEl);
     messagesEl.appendChild(assistantShell);
     requestAnimationFrame(() => {
       assistantShell.classList.add("is-visible");
@@ -1221,6 +1697,9 @@
       columnInput.classList.remove("is-hidden");
     }
     menu.classList.remove("open");
+    if (closingLine) {
+      closingLine.style.display = "";
+    }
   };
 
   loadChat();
