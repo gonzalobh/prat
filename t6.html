@@ -1331,29 +1331,38 @@
 function buildOptionDynamicLine(optionText) {
   if (!optionText) return "";
 
-  const clean = optionText
-    .replace(/\r\n/g, "\n")
-    .replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/gim, "")
-    .trim();
+  const text = String(optionText).replace(/\r\n/g, "\n").trim();
 
-  // Tomamos SOLO la primera frase real
-  const firstSentenceMatch = clean.match(/^[^.!?]+[.!?]?/);
+  // 1) Prioridad absoluta: línea "MARCO:"
+  const marcoLine = text
+    .split("\n")
+    .map(l => l.trim())
+    .find(l => /^marco\s*:/i.test(l));
+
+  if (marcoLine) {
+    return marcoLine
+      .replace(/^marco\s*:\s*/i, "")
+      .replace(/[.:;!?]+$/g, "")
+      .trim()
+      .split(/\s+/)
+      .slice(0, 12)
+      .join(" ");
+  }
+
+  // 2) Fallback (por si el modelo no cumple)
+  const firstSentenceMatch = text.match(/^[^.!?]+[.!?]?/);
   if (!firstSentenceMatch) return "";
 
   let sentence = firstSentenceMatch[0].trim();
-
-  // Limpieza semántica
   sentence = sentence
     .replace(/^(inicia|mant[eé]n|establece|permite|busca|ayuda a)\s+/i, "")
     .replace(/\s*\(.*?\)\s*/g, "")
     .replace(/[.:;!?]+$/g, "")
     .trim();
 
-  // Limitar a máx 12 palabras
-  const words = sentence.split(/\s+/).slice(0, 12);
-
-  return words.join(" ");
+  return sentence.split(/\s+/).slice(0, 12).join(" ");
 }
+
 
 
   function addAssistantResponse(analysisText, options, recommendation, detectedContext) {
