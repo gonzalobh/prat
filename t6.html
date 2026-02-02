@@ -1328,37 +1328,33 @@
     return result;
   }
 
-  function buildOptionDynamicLine(optionText) {
-    if (!optionText) return "";
-    const forbiddenStart = /^(gana|ganas|pierde|pierdes|riesgo|costo|coste)/i;
-    const verbTitle = /^(para\s+)?(abrir\s+di[aá]logo|forzar\s+definici[oó]n|esperar)\s*(?:y\s+|para\s+)?/i;
-    const sanitizeSentence = (sentence) => {
-      let result = sentence.trim();
-      result = result.replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/i, "");
-      result = result.replace(/^[\-•*\d.)\s]+/, "");
-      result = result.replace(/^[“"¿¡]+/, "").replace(/[”"]+$/g, "");
-      result = result.replace(/\s*\(.*?\)\s*/g, " ");
-      result = result.replace(/\s+/g, " ").trim();
-      if (verbTitle.test(result)) {
-        result = result.replace(verbTitle, (match, para) => (para ? "Para " : ""));
-      }
-      return result.replace(/[.:;!?]+$/g, "").trim();
-    };
-    const cleaned = optionText
-      .replace(/\r\n/g, "\n")
-      .replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/gim, "")
-      .trim();
-    const sentences = cleaned
-      .split(/(?<=[.!?])\s+/)
-      .map(sanitizeSentence)
-      .filter(Boolean);
-    const candidate = sentences.find(sentence => {
-      if (forbiddenStart.test(sentence)) return false;
-      return sentence.split(" ").length >= 4;
-    }) || sentences[0] || "";
-    const words = candidate.split(" ").filter(Boolean).slice(0, 12);
-    return words.join(" ").trim();
-  }
+function buildOptionDynamicLine(optionText) {
+  if (!optionText) return "";
+
+  const clean = optionText
+    .replace(/\r\n/g, "\n")
+    .replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/gim, "")
+    .trim();
+
+  // Tomamos SOLO la primera frase real
+  const firstSentenceMatch = clean.match(/^[^.!?]+[.!?]?/);
+  if (!firstSentenceMatch) return "";
+
+  let sentence = firstSentenceMatch[0].trim();
+
+  // Limpieza semántica
+  sentence = sentence
+    .replace(/^(inicia|mant[eé]n|establece|permite|busca|ayuda a)\s+/i, "")
+    .replace(/\s*\(.*?\)\s*/g, "")
+    .replace(/[.:;!?]+$/g, "")
+    .trim();
+
+  // Limitar a máx 12 palabras
+  const words = sentence.split(/\s+/).slice(0, 12);
+
+  return words.join(" ");
+}
+
 
   function addAssistantResponse(analysisText, options, recommendation, detectedContext) {
     try {
