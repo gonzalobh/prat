@@ -924,17 +924,35 @@
   }
 
   function extractTradeoffLine(text) {
-    const clean = text.replace(/\r\n/g, "\n").trim();
-    if (!clean) return "";
-    const lines = clean.split("\n").map(line => line.trim()).filter(Boolean);
-    if (lines.length > 1) {
-      return lines[0].slice(0, 120);
-    }
-    const sentences = clean.split(/(?<=[.!?])\s+/).filter(Boolean);
-    if (sentences.length > 1) {
-      return sentences[0].trim().slice(0, 120);
+    const clean = text.replace(/\r\n/g, "\n");
+    const lines = clean.split("\n");
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (/^trade-off:/i.test(trimmed)) {
+        return trimmed;
+      }
     }
     return "";
+  }
+
+  function getOptionDisplayName(text) {
+    const clean = text.replace(/\r\n/g, "\n");
+    const lines = clean.split("\n");
+    const firstLine = lines.find(line => line.trim());
+    if (!firstLine) return "";
+    const trimmed = firstLine.trim();
+    const looksLikeHeading =
+      !/^trade-off:/i.test(trimmed) &&
+      trimmed.length <= 60 &&
+      !/[.!?]$/.test(trimmed);
+    return looksLikeHeading ? trimmed : "";
+  }
+
+  function stripTradeoffLine(text) {
+    const clean = text.replace(/\r\n/g, "\n");
+    const lines = clean.split("\n");
+    const remaining = lines.filter(line => !/^trade-off:/i.test(line.trim()));
+    return remaining.join("\n").trim();
   }
 
   function setActiveOption(label) {
@@ -945,7 +963,7 @@
     });
   }
 
-  function addAssistantResponse(analysisText, _options) {
+  function addAssistantResponse(analysisText, options) {
     try {
       if (insightTextEl) {
         insightTextEl.textContent = extractAppleInsight(analysisText || "");
@@ -973,43 +991,22 @@
 
       if (!optionsListEl) return;
       optionsListEl.innerHTML = "";
-      const displayOptions = [
-        {
-          label: "B",
-          title: "B — ABRIR DIÁLOGO (RECOMENDADA)",
-          tradeoff: "Trade-off: Reordena el marco sin escalar el conflicto.",
-          text:
-            "Abres un espacio controlado donde el cuestionamiento deja de ser público y vuelve a ser privado.\n" +
-            "No confrontas la crítica: la encuadras.\n" +
-            "Preservas autoridad sin forzarla y expones al otro a definirse sin empujarlo al choque.\n\n" +
-            "Esta opción no elimina el problema, pero corta su crecimiento."
-        },
-        {
-          label: "A",
-          title: "A — ESPERAR",
-          tradeoff: "Trade-off: Reduce la fricción ahora. Debilita el control después.",
-          text:
-            "No haces nada explícamente.\n" +
-            "La tensión baja en el corto plazo, pero el comportamiento queda validado por omisión.\n" +
-            "Cada nuevo cuestionamiento será más fácil para el otro y más costoso para ti revertirlo.\n\n" +
-            "Es cómoda, pero acumula costo silencioso."
-        },
-        {
-          label: "C",
-          title: "C — FORZAR DEFINICIÓN",
-          tradeoff: "Trade-off: Restablece autoridad. Genera fricción inmediata.",
-          text:
-            "Llevas el conflicto a un punto de no retorno.\n" +
-            "Marcas un límite claro y obligas a tomar posición, al precio de escalar la situación.\n" +
-            "Funciona solo si estás dispuesto a asumir consecuencias visibles.\n\n" +
-            "Es efectiva, pero quema capital relacional."
-        }
-      ];
+      const displayOptions = Array.isArray(options) ? options : [];
       displayOptions.forEach((option) => {
+        const optionText = option.text || "";
+        const displayName = getOptionDisplayName(optionText);
+        const titleText = `${option.label} — ${displayName || "OPCIÓN"}`;
+        const tradeoffText = extractTradeoffLine(optionText);
+        const bodyText = stripTradeoffLine(optionText);
+        const isRecommended =
+          /\(\s*RECOMENDADA\s*\)/i.test(titleText) ||
+          /\(\s*RECOMENDADA\s*\)/i.test(optionText) ||
+          /recomendada/i.test(titleText) ||
+          /recomendada/i.test(optionText);
         const card = document.createElement("div");
         card.className = "option-card";
         card.dataset.label = option.label;
-        if (option.label === "B") {
+        if (isRecommended) {
           card.classList.add("is-recommended");
         }
 
@@ -1018,9 +1015,9 @@
 
         const title = document.createElement("div");
         title.className = "option-title";
-        title.textContent = option.title;
+        title.textContent = titleText;
         titleRow.appendChild(title);
-        if (option.label === "B") {
+        if (isRecommended) {
           const badge = document.createElement("span");
           badge.className = "option-badge";
           badge.textContent = "Recomendada";
@@ -1029,7 +1026,7 @@
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
-        tradeoff.textContent = option.tradeoff || "";
+        tradeoff.textContent = tradeoffText || "";
         if (tradeoff.textContent) {
           card.classList.add("has-tradeoff");
         }
@@ -1039,7 +1036,7 @@
 
         const text = document.createElement("div");
         text.className = "option-text";
-        text.textContent = option.text;
+        text.textContent = bodyText;
 
         const copyButton = document.createElement("button");
         copyButton.type = "button";
@@ -1050,7 +1047,7 @@
         copyButton.addEventListener("click", async (event) => {
           event.stopPropagation();
           try {
-            await navigator.clipboard.writeText(option.text);
+            await navigator.clipboard.writeText(optionText);
             copyButton.textContent = "Copiado ✓";
             setTimeout(() => {
               copyButton.textContent = "Copiar texto";
@@ -1070,7 +1067,19 @@
         });
         optionsListEl.appendChild(card);
       });
-      setActiveOption("B");
+      const recommendedOption = displayOptions.find((option) => {
+        const optionText = option.text || "";
+        const displayName = getOptionDisplayName(optionText);
+        const titleText = `${option.label} — ${displayName || "OPCIÓN"}`;
+        return (
+          /\(\s*RECOMENDADA\s*\)/i.test(titleText) ||
+          /\(\s*RECOMENDADA\s*\)/i.test(optionText) ||
+          /recomendada/i.test(titleText) ||
+          /recomendada/i.test(optionText)
+        );
+      });
+      const defaultLabel = recommendedOption?.label || displayOptions[0]?.label || null;
+      setActiveOption(defaultLabel);
       messagesEl.scrollTop = messagesEl.scrollHeight;
     } catch (error) {
       console.error(error);
