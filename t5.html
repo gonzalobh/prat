@@ -816,7 +816,8 @@
     .response-shell.is-loading .summary-blocks,
     .response-shell.is-loading .analysis-panel,
     .response-shell.is-loading .options-title,
-    .response-shell.is-loading .options-list {
+    .response-shell.is-loading .options-list,
+    .response-shell.is-loading .reasoning-toggle {
       display: none;
     }
   </style>
@@ -1197,7 +1198,7 @@
 
       const levelEl = document.createElement("div");
       levelEl.className = "metric-level";
-      levelEl.textContent = `${row.label} — ${levelTextFor(row.gender, level)}`;
+      levelEl.textContent = `${levelTextFor(row.gender, level)}`;
 
       indicator.appendChild(dots);
       indicator.appendChild(levelEl);
@@ -1328,10 +1329,8 @@
     if (!optionText) return "";
     let cleaned = optionText.replace(/\r\n/g, "\n").trim();
     cleaned = cleaned.replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/i, "").trim();
-    const candidate = extractFirstSentence(cleaned) || trimToSentences(cleaned, 1);
-    if (!candidate) return "";
-    const trimmed = candidate.length > 110 ? `${candidate.slice(0, 107).trim()}…` : candidate;
-    return trimmed;
+    const candidate = trimToSentences(cleaned, 2);
+    return candidate || cleaned;
   }
 
   function addAssistantResponse(analysisText, options, recommendation) {
@@ -1525,10 +1524,6 @@
         const body = document.createElement("div");
         body.className = "option-body";
 
-        const text = document.createElement("div");
-        text.className = "option-text";
-        text.textContent = option.text;
-
         const copyButton = document.createElement("button");
         copyButton.type = "button";
         copyButton.className = "copy-button";
@@ -1559,7 +1554,6 @@
           }
         });
 
-        body.appendChild(text);
         const copyRow = document.createElement("div");
         copyRow.className = "copy-row";
         copyRow.appendChild(copyButton);
@@ -1691,6 +1685,7 @@
     reasoningToggleEl.type = "button";
     reasoningToggleEl.className = "reasoning-toggle";
     reasoningToggleEl.textContent = "Ver cómo se llegó a esta conclusión";
+    reasoningToggleEl.style.display = "none";
 
     insightBlock.appendChild(insightLabel);
     insightBlock.appendChild(insightTextEl);
