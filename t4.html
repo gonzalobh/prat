@@ -264,6 +264,7 @@
       flex-direction: column;
       align-items: center;
       padding-right: 4px;
+      transition: margin 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .message {
@@ -279,11 +280,13 @@
     }
 
     .response-shell {
-      width: min(720px, 100%);
+      width: 100%;
+      max-width: 720px;
       display: flex;
       flex-direction: column;
       gap: 28px;
       padding: 24px 0 36px;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .insight-block {
@@ -309,6 +312,7 @@
       line-height: 1.35;
       max-width: 520px;
       margin: 0 auto;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .reasoning-toggle {
@@ -415,6 +419,7 @@
       display: flex;
       flex-direction: column;
       gap: 14px;
+      transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .option-card {
@@ -612,6 +617,26 @@
       .loader-desktop.is-active {
         display: flex;
       }
+
+      .workspace.is-reflection-mode .messages {
+        grid-column: 1 / -1;
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+      .workspace.is-reflection-mode .response-shell {
+        max-width: 840px;
+      }
+
+      .workspace.is-reflection-mode .insight-text {
+        max-width: 720px;
+      }
+
+      .workspace.is-reflection-mode .options-list {
+        width: 100%;
+        max-width: 840px;
+        margin: 0 auto;
+      }
     }
   </style>
 </head>
@@ -677,6 +702,7 @@
   const menuBtn = document.getElementById("menuBtn");
   const menu = document.getElementById("menu");
   const resetBtn = document.getElementById("resetBtn");
+  const workspace = document.querySelector(".workspace");
   const inputColumn = document.querySelector(".column-input");
   const contextSelector = document.getElementById("contextSelector");
   const contextButtons = contextSelector.querySelectorAll(".context-button");
@@ -1087,6 +1113,7 @@
 
   async function sendMessage(text) {
     inputColumn.classList.add("is-collapsed");
+    workspace.classList.add("is-reflection-mode");
     lastUserText = text;
     const profileParts = [];
     if (genderSelect.value) {
@@ -1232,6 +1259,7 @@
     inputColumn.classList.remove("is-collapsed");
     inputColumn.offsetHeight;
     inputColumn.classList.remove("is-restoring");
+    workspace.classList.remove("is-reflection-mode");
     menu.classList.remove("open");
   };
 
