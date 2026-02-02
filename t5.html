@@ -78,12 +78,11 @@
 
     .workspace {
       flex: 1;
-      display: grid;
-      grid-template-columns: minmax(260px, 1.3fr) minmax(320px, 2.7fr);
-      grid-template-rows: 1fr;
-      gap: 36px;
-      padding: 18px 36px 42px;
-      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding: 24px 16px 42px;
     }
 
     .column {
@@ -238,14 +237,15 @@
     }
 
     .messages {
-      grid-column: 2;
-      grid-row: 1;
-      flex: 1;
-      overflow-y: auto;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding-right: 4px;
+    }
+
+    .column-input {
+      width: 100%;
+      max-width: 720px;
     }
 
     .message {
@@ -497,8 +497,6 @@
 
     @media (max-width: 1023px) {
       .workspace {
-        grid-template-columns: 1fr;
-        grid-template-rows: auto;
         padding: 16px;
         display: flex;
         flex-direction: column;
@@ -512,11 +510,6 @@
       }
 
       .column-input {
-        grid-row: auto;
-      }
-
-      .messages {
-        grid-column: 1;
         grid-row: auto;
       }
 
