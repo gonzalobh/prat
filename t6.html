@@ -1330,10 +1330,34 @@
 
   function buildOptionDynamicLine(optionText) {
     if (!optionText) return "";
-    let cleaned = optionText.replace(/\r\n/g, "\n").trim();
-    cleaned = cleaned.replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/i, "").trim();
-    const candidate = trimToSentences(cleaned, 2);
-    return candidate || cleaned;
+    const forbiddenStart = /^(gana|ganas|pierde|pierdes|riesgo|costo|coste)/i;
+    const verbTitle = /^(para\s+)?(abrir\s+di[aá]logo|forzar\s+definici[oó]n|esperar)\s*(?:y\s+|para\s+)?/i;
+    const sanitizeSentence = (sentence) => {
+      let result = sentence.trim();
+      result = result.replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/i, "");
+      result = result.replace(/^[\-•*\d.)\s]+/, "");
+      result = result.replace(/^[“"¿¡]+/, "").replace(/[”"]+$/g, "");
+      result = result.replace(/\s*\(.*?\)\s*/g, " ");
+      result = result.replace(/\s+/g, " ").trim();
+      if (verbTitle.test(result)) {
+        result = result.replace(verbTitle, (match, para) => (para ? "Para " : ""));
+      }
+      return result.replace(/[.:;!?]+$/g, "").trim();
+    };
+    const cleaned = optionText
+      .replace(/\r\n/g, "\n")
+      .replace(/^opci[oó]n\s*[A-C]\s*[:\-–—]\s*/gim, "")
+      .trim();
+    const sentences = cleaned
+      .split(/(?<=[.!?])\s+/)
+      .map(sanitizeSentence)
+      .filter(Boolean);
+    const candidate = sentences.find(sentence => {
+      if (forbiddenStart.test(sentence)) return false;
+      return sentence.split(" ").length >= 4;
+    }) || sentences[0] || "";
+    const words = candidate.split(" ").filter(Boolean).slice(0, 12);
+    return words.join(" ").trim();
   }
 
   function addAssistantResponse(analysisText, options, recommendation, detectedContext) {
@@ -1428,11 +1452,6 @@
         B: "Abrir diálogo",
         C: "Forzar definición"
       };
-      const optionConsequences = {
-        A: "Limpia la tensión inmediata.",
-        B: "Reordena el marco.",
-        C: "Restablece autoridad."
-      };
       const optionOrder = ["B", "A", "C"];
       const normalizedRecommendation = recommendation && ["A", "B", "C"].includes(recommendation)
         ? recommendation
@@ -1478,15 +1497,9 @@
 
         const tradeoff = document.createElement("div");
         tradeoff.className = "option-tradeoff";
-        const tradeoffBase = document.createElement("div");
-        tradeoffBase.className = "option-tradeoff-base";
-        tradeoffBase.textContent = optionConsequences[option.label] || "";
         const tradeoffDynamic = document.createElement("div");
         tradeoffDynamic.className = "option-tradeoff-dynamic";
         tradeoffDynamic.textContent = buildOptionDynamicLine(option.text);
-        if (tradeoffBase.textContent) {
-          tradeoff.appendChild(tradeoffBase);
-        }
         if (tradeoffDynamic.textContent) {
           tradeoff.appendChild(tradeoffDynamic);
         }
