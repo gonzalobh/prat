@@ -110,35 +110,6 @@
       gap: 16px;
     }
 
-    .context-selector {
-      display: flex;
-      gap: 8px;
-      flex-wrap: wrap;
-    }
-
-    .context-button {
-      padding: 7px 13px;
-      border-radius: 999px;
-      border: 1px solid #e5e7eb;
-      background: #fff;
-      color: #111827;
-      cursor: pointer;
-      font-size: 12px;
-      font-weight: 500;
-      transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
-    }
-
-    .context-button:hover {
-      border-color: #cbd5f5;
-      color: #111827;
-    }
-
-    .context-button.active {
-      background: #111827;
-      color: #fff;
-      border-color: #111827;
-    }
-
     .input-row {
       display: flex;
       flex-direction: column;
@@ -311,6 +282,18 @@
       font-weight: 600;
     }
 
+    .insight-context {
+      align-self: center;
+      padding: 4px 12px;
+      border-radius: 999px;
+      border: 1px solid #e5e7eb;
+      background: #f8fafc;
+      color: #64748b;
+      font-size: 11px;
+      letter-spacing: 0.02em;
+      font-weight: 600;
+    }
+
     .insight-text {
       font-size: 32px;
       font-weight: 600;
@@ -444,6 +427,13 @@
       letter-spacing: 0.18em;
       font-weight: 600;
       color: #6b7280;
+    }
+
+    .dashboard-context {
+      font-size: 11px;
+      color: #9ca3af;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
     }
 
     .metric-row {
@@ -837,13 +827,6 @@
     <section class="column column-input">
       <div class="column-header">Describe la situación</div>
       <form class="input-container" id="form">
-        <div class="context-selector" id="contextSelector">
-          <button type="button" class="context-button active" data-context="General">General</button>
-          <button type="button" class="context-button" data-context="Negociación">Negociación</button>
-          <button type="button" class="context-button" data-context="Trabajo / Política interna">Trabajo / Política interna</button>
-          <button type="button" class="context-button" data-context="Cliente / Ventas">Cliente / Ventas</button>
-          <button type="button" class="context-button" data-context="Carrera / Oferta laboral">Carrera / Oferta laboral</button>
-        </div>
         <button type="button" class="advanced-toggle" id="advancedToggle">Ajustes avanzados (opcional)</button>
         <div class="input-row profile-row is-collapsed" id="profileRow">
           <label for="genderSelect" class="profile-label">👤 Perfil de la persona (opcional)</label>
@@ -885,8 +868,6 @@
   const menuBtn = document.getElementById("menuBtn");
   const menu = document.getElementById("menu");
   const resetBtn = document.getElementById("resetBtn");
-  const contextSelector = document.getElementById("contextSelector");
-  const contextButtons = contextSelector.querySelectorAll(".context-button");
   const submitButton = form.querySelector("button[type='submit']");
   const columnInput = document.querySelector(".column-input");
   const advancedToggle = document.getElementById("advancedToggle");
@@ -897,10 +878,10 @@
   const closingLine = document.querySelector(".closing-line");
 
   let messages = [];
-  let currentContext = "General";
   let isLoading = false;
   let insightTextEl = null;
   let insightSubtextEl = null;
+  let insightContextEl = null;
   let reasoningToggleEl = null;
   let analysisPanelEl = null;
   let optionsListEl = null;
@@ -1157,7 +1138,7 @@
     };
   }
 
-  function buildDecisionDashboard(metrics) {
+  function buildDecisionDashboard(metrics, context = "General") {
     const dashboard = document.createElement("div");
     dashboard.className = "dashboard-card";
 
@@ -1165,6 +1146,11 @@
     title.className = "dashboard-title";
     title.textContent = "Decision Dashboard";
     dashboard.appendChild(title);
+
+    const contextLine = document.createElement("div");
+    contextLine.className = "dashboard-context";
+    contextLine.textContent = `Contexto detectado: ${context}`;
+    dashboard.appendChild(contextLine);
 
     const rows = [
       { key: "risk", label: "Riesgo", gender: "m" },
@@ -1333,17 +1319,21 @@
     return candidate || cleaned;
   }
 
-  function addAssistantResponse(analysisText, options, recommendation) {
+  function addAssistantResponse(analysisText, options, recommendation, detectedContext) {
     try {
+      const resolvedContext = detectedContext || "General";
       if (insightTextEl) {
         insightTextEl.textContent = extractAppleInsight(analysisText || "");
       }
       if (insightSubtextEl) {
-        insightSubtextEl.textContent = extractSubInsight(analysisText || "", currentContext);
+        insightSubtextEl.textContent = extractSubInsight(analysisText || "", resolvedContext);
+      }
+      if (insightContextEl) {
+        insightContextEl.textContent = `Contexto: ${resolvedContext}`;
       }
       if (dashboardEl) {
         const metrics = deriveMetricsFromAnalysis(analysisText || "");
-        const nextDashboard = buildDecisionDashboard(metrics);
+        const nextDashboard = buildDecisionDashboard(metrics, resolvedContext);
         dashboardEl.replaceWith(nextDashboard);
         dashboardEl = nextDashboard;
       }
@@ -1573,11 +1563,47 @@
 
   function parseResponse(answer) {
     try {
-      if (!answer) return { analysis: "", options: [], recommendation: "" };
+      if (!answer) return { analysis: "", options: [], recommendation: "", context: "General" };
       const normalized = answer.replace(/\r\n/g, "\n");
+      const lines = normalized.split("\n");
+      const allowedContexts = [
+        "General",
+        "Negociación",
+        "Trabajo / Política interna",
+        "Cliente / Ventas",
+        "Carrera / Oferta laboral"
+      ];
+      const stripAccents = (value) =>
+        value.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const normalizedAllowed = allowedContexts.map((context) => ({
+        raw: context,
+        normalized: stripAccents(context).toLowerCase()
+      }));
+      let context = "General";
+      let contextLineIndex = -1;
+      for (let i = 0; i < lines.length; i += 1) {
+        const line = lines[i];
+        if (!line.trim()) continue;
+        const normalizedLine = stripAccents(line).toLowerCase();
+        if (normalizedLine.startsWith("contexto:")) {
+          const rawValue = line.split(":").slice(1).join(":").trim();
+          const normalizedValue = stripAccents(rawValue).toLowerCase();
+          const match = normalizedAllowed.find(item => item.normalized === normalizedValue);
+          if (match) {
+            context = match.raw;
+          }
+          contextLineIndex = i;
+          break;
+        }
+      }
+      const normalizedWithoutContext = contextLineIndex === -1
+        ? normalized
+        : lines.filter((_, index) => index !== contextLineIndex).join("\n").trim();
       const recommendationMatch = normalized.match(/RECOMENDACI[ÓO]N\s*:\s*([A-C])/i);
       const recommendation = recommendationMatch ? recommendationMatch[1].toUpperCase() : "";
-      const cleaned = normalized.replace(/^\s*RECOMENDACI[ÓO]N\s*:\s*[A-C]\s*$/gim, "").trim();
+      const cleaned = normalizedWithoutContext
+        .replace(/^\s*RECOMENDACI[ÓO]N\s*:\s*[A-C]\s*$/gim, "")
+        .trim();
       const optionRegex = (label) =>
         new RegExp(
           `Opc[ií]ón\\s*${label}\\s*(?:\\([^\\)]*\\))?\\s*:\\s*([\\s\\S]*?)(?=Opc[ií]ón\\s*[A-C]\\s*(?:\\(|:)|$)`,
@@ -1592,10 +1618,10 @@
       const firstOptionIndex = cleaned.search(/Opc[ií]ón\s*[A-C]/i);
       const analysisContent =
         firstOptionIndex !== -1 ? cleaned.slice(0, firstOptionIndex).trim() : cleaned.trim();
-      return { analysis: analysisContent, options, recommendation };
+      return { analysis: analysisContent, options, recommendation, context };
     } catch (error) {
       console.error(error);
-      return { analysis: answer || "", options: [], recommendation: "" };
+      return { analysis: answer || "", options: [], recommendation: "", context: "General" };
     }
   }
 
@@ -1619,19 +1645,6 @@
     }
   }
 
-  function setContext(context) {
-    currentContext = context;
-    contextButtons.forEach(button => {
-      button.classList.toggle("active", button.dataset.context === context);
-    });
-  }
-
-  contextButtons.forEach(button => {
-    button.addEventListener("click", () => {
-      setContext(button.dataset.context);
-    });
-  });
-
   advancedToggle.addEventListener("click", () => {
     profileRow.classList.toggle("is-collapsed");
   });
@@ -1649,7 +1662,9 @@
       profileParts.push(ageSelect.value);
     }
     const profileLine = profileParts.length ? `[Perfil: ${profileParts.join(", ")}]` : "";
-    const payloadLines = [`[Contexto: ${currentContext}]`];
+    const payloadLines = [
+      `[Instrucción: Detecta el contexto de la situación (General / Negociación / Trabajo / Política interna / Cliente / Ventas / Carrera / Oferta laboral) y devuélvelo como "CONTEXTO: <valor>" al inicio de tu respuesta.]`
+    ];
     if (profileLine) {
       payloadLines.push(profileLine);
     }
@@ -1673,6 +1688,10 @@
     insightLabel.className = "insight-label";
     insightLabel.textContent = "LO QUE REALMENTE ESTÁ OCURRIENDO";
 
+    insightContextEl = document.createElement("div");
+    insightContextEl.className = "insight-context";
+    insightContextEl.textContent = "Contexto: General";
+
     insightTextEl = document.createElement("div");
     insightTextEl.className = "insight-text";
     insightTextEl.textContent = "";
@@ -1688,6 +1707,7 @@
     reasoningToggleEl.style.display = "none";
 
     insightBlock.appendChild(insightLabel);
+    insightBlock.appendChild(insightContextEl);
     insightBlock.appendChild(insightTextEl);
     insightBlock.appendChild(insightSubtextEl);
     analysisPanelEl = document.createElement("div");
@@ -1695,7 +1715,7 @@
 
     loaderDesktopEl = buildLoaderPanel("loader-desktop");
 
-    dashboardEl = buildDecisionDashboard(deriveMetricsFromAnalysis(""));
+    dashboardEl = buildDecisionDashboard(deriveMetricsFromAnalysis(""), "General");
 
     summaryBlocksEl = document.createElement("div");
     summaryBlocksEl.className = "summary-blocks";
@@ -1748,7 +1768,7 @@
       }
 
       const parsed = parseResponse(answerText || "");
-      addAssistantResponse(parsed.analysis, parsed.options, parsed.recommendation);
+      addAssistantResponse(parsed.analysis, parsed.options, parsed.recommendation, parsed.context);
       messages.push({ role: "assistant", content: answerText });
     } catch (error) {
       console.error(error);
@@ -1791,7 +1811,6 @@
     if (WELCOME) {
       addMessage("assistant", WELCOME);
     }
-    setContext("General");
     genderSelect.value = "";
     ageSelect.value = "";
     profileRow.classList.add("is-collapsed");
